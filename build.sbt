@@ -24,9 +24,6 @@ version := "1.0"
 // You can define other libraries as dependencies in your build like this:
 
 // CommonJS
-val firrtl = "edu.berkeley.cs" %% "firrtl" % "1.3-SNAPSHOT"
-libraryDependencies += firrtl
-
 // Here, `libraryDependencies` is a set of dependencies, and by using `+=`,
 // we're adding the cats dependency to the set of dependencies that sbt will go
 // and fetch when it starts up.
