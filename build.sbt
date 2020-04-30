@@ -12,10 +12,7 @@ scalaVersion := "2.12.10"
 
 // It's possible to define many kinds of settings, such as:
 
-enablePlugins(JavaAppPackaging)
-
 name := "firrtl2digitaljs"
-organization := "ch.epfl.scala"
 version := "1.0"
 
 // Note, it's not required for you to define these three settings. These are
@@ -25,6 +22,8 @@ version := "1.0"
 
 // Want to use a published library in your project?
 // You can define other libraries as dependencies in your build like this:
+
+// CommonJS
 val firrtl = "edu.berkeley.cs" %% "firrtl" % "1.3-SNAPSHOT"
 libraryDependencies += firrtl
 
