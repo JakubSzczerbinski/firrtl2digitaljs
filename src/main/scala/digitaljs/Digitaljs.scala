@@ -17,8 +17,6 @@ case class Subcircuit(label: String, celltype: String) extends Device {
 }"""
 }
 
-case class Not() extends Device {}
-
 case class Input(label: String, net: String, order: Int, bits: Int) extends Device {
   override def toJson(): String = s"""
 {
@@ -139,6 +137,14 @@ case class Ge() extends BinType {
   override def toJson(): String = "Ge"
 }
 
+case class ShiftLeft() extends BinType {
+  override def toJson(): String = "ShiftLeft"
+}
+
+case class ShiftRight() extends BinType {
+  override def toJson(): String = "ShiftRight"
+}
+
 
 case class Binary(tpe: BinType, label: String, bits_in1: Int, bits_in2: Int, bits_out: Int, 
   signed_in1: Boolean, signed_in2: Boolean) extends Device
@@ -156,6 +162,37 @@ case class Binary(tpe: BinType, label: String, bits_in1: Int, bits_in2: Int, bit
     "in1": $signed_in1,
     "in2": $signed_in2
   }
+}"""
+}
+
+abstract class UnaryType extends JsonSerializable{}
+
+case class Negation() extends UnaryType {
+  override def toJson(): String = "Negation"
+}
+
+case class UnaryPlus() extends UnaryType {
+  override def toJson(): String = "UnaryPlus"
+}
+
+case class Not() extends UnaryType {
+  override def toJson(): String = "Not"
+}
+
+case class Repeater() extends UnaryType {
+  override def toJson(): String = "Repeater"
+}
+
+case class Unary(tpe: UnaryType, label: String, bits_in: Int, bits_out: Int, signed: Boolean) extends Device {
+  override def toJson(): String = s"""
+{
+  "type": ${tpe.toJson()},
+  "label": "$label",
+  "bits": {
+    "in": $bits_in,
+    "out": $bits_out
+  },
+  "signed": $signed
 }"""
 }
 
