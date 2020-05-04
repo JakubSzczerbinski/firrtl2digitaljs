@@ -196,6 +196,77 @@ case class Unary(tpe: UnaryType, label: String, bits_in: Int, bits_out: Int, sig
 }"""
 }
 
+abstract class BinaryGateType extends JsonSerializable {}
+
+case object And extends BinaryGateType {
+  override def toJson(): String = "And"
+}
+
+case object Nand extends BinaryGateType {
+  override def toJson(): String = "Nand"
+}
+
+case object Or extends BinaryGateType {
+  override def toJson(): String = "Or"
+}
+
+case object Nor extends BinaryGateType {
+  override def toJson(): String = "Nor"
+}
+
+case object Xor extends BinaryGateType {
+  override def toJson(): String = "Xor"
+}
+
+case object Xnor extends BinaryGateType {
+  override def toJson(): String = "Xnor"
+}
+
+case class BinaryGate (tpe: BinaryGateType, label: String, bits: Int) extends Device {
+  override def toJson(): String = s"""
+{
+  "type": ${tpe.toJson()},
+  "label": "$label",
+  "bits": $bits
+}"""
+}
+
+abstract class ReduceGateType extends JsonSerializable {}
+
+
+case object AndReduce extends ReduceGateType {
+  override def toJson(): String = "AndReduce"
+}
+
+case object NandReduce extends ReduceGateType {
+  override def toJson(): String = "NandReduce"
+}
+
+case object OrReduce extends ReduceGateType {
+  override def toJson(): String = "OrReduce"
+}
+
+case object NorReduce extends ReduceGateType {
+  override def toJson(): String = "NorReduce"
+}
+
+case object XorReduce extends ReduceGateType {
+  override def toJson(): String = "XorReduce"
+}
+
+case object XnorReduce extends ReduceGateType {
+  override def toJson(): String = "XnorReduce"
+}
+
+case class ReduceGate(tpe: ReduceGateType, label: String, bits: Int) extends Device {
+  override def toJson(): String = s"""
+{
+  "type": ${tpe.toJson()},
+  "label": "$label",
+  "bits": $bits
+}"""
+}
+
 case class ZeroExtend(label: String, extend_input : Int, extend_output : Int) extends Device {
   override def toJson(): String = s"""
 {

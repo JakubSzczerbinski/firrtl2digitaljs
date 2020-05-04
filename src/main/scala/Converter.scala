@@ -88,7 +88,19 @@ object Converter {
     "__INTERMEDIATE__" + genId.toString(16)
   }
 
-    
+  def reduceGateOfPrimOp(op: PrimOp) : ReduceGateType =
+    op match {
+      case Andr => AndReduce
+      case Orr => OrReduce
+      case Xorr => XorReduce
+    }
+
+  def binGateTypeOfPrimOp(op: PrimOp) : BinaryGateType =
+    op match {
+      case firrtl.PrimOps.And => digitaljs.And
+      case firrtl.PrimOps.Or => digitaljs.And
+      case firrtl.PrimOps.Xor => digitaljs.And
+    }    
 
   def binTypeOfPrimOp(op: PrimOp) : BinType =
     op match {
@@ -205,8 +217,37 @@ object Converter {
         , new Plug(name, "out")
         )
       }
-      case And | Or | Xor => ???
-      case Andr | Orr | Xorr => ???
+      case firrtl.PrimOps.And | firrtl.PrimOps.Or | firrtl.PrimOps.Xor => {
+        val name = generateIntermediateName();
+        val lhs = args(0);
+        val rhs = args(1);
+        val (lds, lcs, lhsPlug) = convertExpression(lhs);
+        val (rds, rcs, rhsPlug) = convertExpression(rhs);
+        ( (lds ++ rds)
+        + (name -> new BinaryGate(
+            binGateTypeOfPrimOp(op),
+            name, 
+            bitWidth(tpe).toInt))
+        , new Connector(lhsPlug, new Plug(name, "in1")) ::
+          new Connector(rhsPlug, new Plug(name, "in2")) ::
+          lcs ++ rcs
+        , new Plug(name, "out")
+        )
+      }
+      case Andr | Orr | Xorr => {
+        val name = generateIntermediateName();
+        val arg = args(0);
+        val (ds, cs, plug) = convertExpression(arg);
+        ( ds
+        + (name -> new ReduceGate(
+            reduceGateOfPrimOp(op),
+            name, 
+            bitWidth(tpe).toInt))
+        , new Connector(plug, new Plug(name, "in")) ::
+          cs
+        , new Plug(name, "out")
+        )
+      }
       case Cat => ??? 
       case Bits => ???
       case Head => ???
