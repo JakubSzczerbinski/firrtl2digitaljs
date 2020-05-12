@@ -302,6 +302,42 @@ case class Output(label: String, net: String, order: Int, bits: Int) extends Dev
 }"""
 }
 
+case class Group(bits : Int) extends JsonSerializable {
+  override def toJson(): String = bits.toString
+}
+
+case class BusGroup(label: String, groups : Array[Group]) extends Device {
+  override def toJson(): String = s"""
+{
+  "type": "BusGroup",
+  "label": "$label",
+  "groups": ${JsonHelpers.serialize_list(groups)}
+}"""
+}
+
+case class BusUngroup(label: String, groups : Array[Group]) extends Device {
+  override def toJson(): String = s"""
+{
+  "type": "BusUngroup",
+  "label": "$label",
+  "groups": ${JsonHelpers.serialize_list(groups)}
+}"""
+}
+
+case class BusSlice(label: String, first: Int, count : Int, total: Int) extends Device {
+  override def toJson(): String = s"""
+{
+  "type": "BusSlice"
+  "label": "$label",
+  "slice": {
+    "first": $first,
+    "count": $count,
+    "total": $total
+  }
+}"""
+}
+
+
 class Plug(id: String, port: String) extends JsonSerializable {
   def toJson(): String = s"""
 {

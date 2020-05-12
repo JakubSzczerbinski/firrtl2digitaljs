@@ -248,10 +248,78 @@ object Converter {
         , new Plug(name, "out")
         )
       }
-      case Cat => ??? 
-      case Bits => ???
-      case Head => ???
-      case Tail => ???
+      case Cat => {
+        val name = generateIntermediateName();
+        val lhs = args(0);
+        val rhs = args(1);
+        val (lds, lcs, lhsPlug) = convertExpression(lhs);
+        val (rds, rcs, rhsPlug) = convertExpression(rhs);
+        ( (lds ++ rds)
+        + (name -> new BusGroup(
+            name, 
+            Array[Group](
+              new Group(bitWidth(lhs.tpe).toInt),
+              new Group(bitWidth(rhs.tpe).toInt)
+            )
+          ))
+        , new Connector(lhsPlug, new Plug(name, "in0")) ::
+          new Connector(rhsPlug, new Plug(name, "in1")) ::
+          lcs ++ rcs
+        , new Plug(name, "out")
+        )
+      }
+      case Bits => {
+        val name = generateIntermediateName();
+        val arg = args(0);
+        val hi = consts(0);
+        val lo = consts(1);
+        val (ds, cs, plug) = convertExpression(arg);
+        ( ds
+        + (name -> new BusSlice(
+            name,
+            lo.toInt,
+            (hi - lo + 1).toInt,
+            bitWidth(arg.tpe).toInt
+          ))
+        , new Connector(plug, new Plug(name, "in")) ::
+          cs
+        , new Plug(name, "out")
+        )
+      }
+      case Head => {
+        val name = generateIntermediateName();
+        val arg = args(0);
+        val n = consts(0);
+        val (ds, cs, plug) = convertExpression(arg);
+        ( ds
+        + (name -> new BusSlice(
+            name,
+            0,
+            n.toInt,
+            bitWidth(arg.tpe).toInt
+          ))
+        , new Connector(plug, new Plug(name, "in")) ::
+          cs
+        , new Plug(name, "out")
+        )
+      }
+      case Tail => {
+        val name = generateIntermediateName();
+        val arg = args(0);
+        val n = consts(0);
+        val (ds, cs, plug) = convertExpression(arg);
+        ( ds
+        + (name -> new BusSlice(
+            name,
+            n.toInt,
+            (bitWidth(arg.tpe) - n).toInt,
+            bitWidth(arg.tpe).toInt
+          ))
+        , new Connector(plug, new Plug(name, "in")) ::
+          cs
+        , new Plug(name, "out")
+        )
+      }
       case _ => println("Not handled ", op.toString()); (ListMap(), Nil, new Plug("XD", "out"));
     }
 
