@@ -5,4 +5,6 @@ RUN echo "deb https://dl.bintray.com/sbt/debian /" | tee -a /etc/apt/sources.lis
     apt-get update && \
     apt-get install sbt
 
-
+RUN git clone https://github.com/freechipsproject/firrtl.git && cd firrtl \
+    sbt -Dsbt.global.base=/.sbt -Dsbt.boot.directory=/.sbt -Dsbt.ivy.home=/.ivy2 compile && \
+    sbt -Dsbt.global.base=/.sbt -Dsbt.boot.directory=/.sbt -Dsbt.ivy.home=/.ivy2 publishLocal

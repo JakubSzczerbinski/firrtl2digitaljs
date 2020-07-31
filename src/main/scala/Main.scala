@@ -43,7 +43,7 @@ object Main {
   }
 
   def lowerFirrtl(circuit : firrtl.ir.Circuit) : firrtl.ir.Circuit = {
-      val lowfirrtlC = new LowFirrtlCompiler()
-      lowfirrtlC.compileAndEmit(CircuitState(circuit, ChirrtlForm)).circuit
+    val lowfirrtlC = new LowFirrtlCompiler()
+    lowfirrtlC.compileAndEmit(CircuitState(circuit, ChirrtlForm)).circuit
   }
 }

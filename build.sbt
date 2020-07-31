@@ -15,6 +15,7 @@ scalaVersion := "2.12.10"
 name := "firrtl2digitaljs"
 version := "1.0"
 
+libraryDependencies += "edu.berkeley.cs" % "firrtl_2.12" % "1.3-SNAPSHOT"
 // Note, it's not required for you to define these three settings. These are
 // mostly only necessary if you intend to publish your library's binaries on a
 // place like Sonatype or Bintray.

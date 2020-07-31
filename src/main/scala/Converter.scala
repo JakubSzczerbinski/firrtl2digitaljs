@@ -17,6 +17,7 @@ import firrtl.WSubField
 import firrtl.WDefInstance
 import scala.collection.immutable.ListMap
 import scala.collection.immutable.Stream.cons
+import firrtl.getWidth
 
 object Converter {
   var genId : BigInt = BigInt.int2bigInt(0);
@@ -40,16 +41,32 @@ object Converter {
 
   def transformIO : Device => Device = { case device => 
     device match {
-      case digitaljs.Input(label, net, order, bits) => NumEntry(label, bits, "hex")
-      case digitaljs.Output(label, net, order, bits) => NumDisplay(label, bits, "hex")
+      case digitaljs.Input(label, net, order, bits, is_clock) => 
+        if (is_clock)
+          Clock(label)
+        else if (bits == 1)
+          Button(label)
+        else
+          NumEntry(label, bits, "hex")
+      case digitaljs.Output(label, net, order, bits) => 
+        if (bits == 1)
+          Lamp(label)
+        else
+          NumDisplay(label, bits, "hex")
       case _ => device
     }
   }
 
+  def isClockType(tpe : Type) =
+    tpe match {
+      case ClockType => true
+      case _ => false
+    }
+
   def convertPort(port: Port, portNumber: Int): (String, Device) = {
     port.direction match {
       case firrtl.ir.Input =>
-        (port.name, new Input(port.name, port.name, portNumber, bitWidth(port.tpe).intValue))
+        (port.name, new Input(port.name, port.name, portNumber, bitWidth(port.tpe).intValue, isClockType(port.tpe)))
       case firrtl.ir.Output =>
         (port.name, new Output(
           port.name,
@@ -83,9 +100,12 @@ object Converter {
       case _ => println(expr); ???
     }
 
-  def generateIntermediateName(): String = {
+  def generateIntermediateName(name: Option[String]): String = {
+    if (name.isDefined) {
+      return name.get;
+    }
     genId += 1;
-    "__INTERMEDIATE__" + genId.toString(16)
+    return "__INTERMEDIATE__" + genId.toString(16);
   }
 
   def reduceGateOfPrimOp(op: PrimOp) : ReduceGateType =
@@ -98,8 +118,8 @@ object Converter {
   def binGateTypeOfPrimOp(op: PrimOp) : BinaryGateType =
     op match {
       case firrtl.PrimOps.And => digitaljs.And
-      case firrtl.PrimOps.Or => digitaljs.And
-      case firrtl.PrimOps.Xor => digitaljs.And
+      case firrtl.PrimOps.Or => digitaljs.Or
+      case firrtl.PrimOps.Xor => digitaljs.Xor
     }    
 
   def binTypeOfPrimOp(op: PrimOp) : BinType =
@@ -109,12 +129,20 @@ object Converter {
       case Mul => Multiplication()
       case Div => Division()
       case Rem => Modulo()
+    }
+
+  def compTypeOfPrimOp(op: PrimOp) : CompType =
+    op match {
       case Leq => Le()
       case firrtl.PrimOps.Lt => digitaljs.Lt()
       case Geq => Ge()
       case firrtl.PrimOps.Gt => digitaljs.Gt()
       case firrtl.PrimOps.Eq => digitaljs.Eq()
       case Neq => Ne()
+    }
+
+  def shiftTypeOfPrimOp(op: PrimOp) : ShiftType =
+    op match {
       case Shr | Dshr => ShiftRight()
       case Shl | Dshl => ShiftLeft()
     }
@@ -123,20 +151,18 @@ object Converter {
     op: PrimOp,
     args: Seq[Expression],
     consts: Seq[BigInt],
-    tpe: Type
+    tpe: Type,
+    default_name: Option[String]
   ): (Map[String, Device], List[Connector], Plug) = 
     op match {
-      case Add | Sub | Mul | Div | Rem |
-        firrtl.PrimOps.Leq | firrtl.PrimOps.Lt | firrtl.PrimOps.Geq | 
-        firrtl.PrimOps.Gt | firrtl.PrimOps.Eq | firrtl.PrimOps.Neq |
-        Dshl | Dshr =>
-        val name = generateIntermediateName();
+      case Add | Sub | Mul | Div | Rem =>
+        val name = generateIntermediateName(default_name);
         val lhs = args(0);
         val rhs = args(1);
         val (lds, lcs, lhsPlug) = convertExpression(lhs);
         val (rds, rcs, rhsPlug) = convertExpression(rhs);
         ( (lds ++ rds)
-        + (name -> new Binary(
+        + (name -> new BinaryArith(
             binTypeOfPrimOp(op), 
             name, 
             bitWidth(lhs.tpe).toInt, 
@@ -147,12 +173,50 @@ object Converter {
           lcs ++ rcs
         , new Plug(name, "out")
         )
+      case firrtl.PrimOps.Leq | firrtl.PrimOps.Lt | firrtl.PrimOps.Geq | 
+        firrtl.PrimOps.Gt | firrtl.PrimOps.Eq | firrtl.PrimOps.Neq =>
+        val name = generateIntermediateName(default_name);
+        val lhs = args(0);
+        val rhs = args(1);
+        val (lds, lcs, lhsPlug) = convertExpression(lhs);
+        val (rds, rcs, rhsPlug) = convertExpression(rhs);
+        ( (lds ++ rds)
+        + (name -> new Comparision(
+            compTypeOfPrimOp(op), 
+            name, 
+            bitWidth(lhs.tpe).toInt, 
+            bitWidth(rhs.tpe).toInt, 
+            false, false))
+        , new Connector(lhsPlug, new Plug(name, "in1")) ::
+          new Connector(rhsPlug, new Plug(name, "in2")) ::
+          lcs ++ rcs
+        , new Plug(name, "out")
+        )
+      case Dshl | Dshr =>
+        val name = generateIntermediateName(default_name);
+        val lhs = args(0);
+        val rhs = args(1);
+        val (lds, lcs, lhsPlug) = convertExpression(lhs);
+        val (rds, rcs, rhsPlug) = convertExpression(rhs);
+        ( (lds ++ rds)
+        + (name -> new Shift(
+            shiftTypeOfPrimOp(op), 
+            name, 
+            bitWidth(lhs.tpe).toInt, 
+            bitWidth(rhs.tpe).toInt, 
+            bitWidth(tpe).toInt, false, false, false, true))
+        , new Connector(lhsPlug, new Plug(name, "in1")) ::
+          new Connector(rhsPlug, new Plug(name, "in2")) ::
+          lcs ++ rcs
+        , new Plug(name, "out")
+        )
+
       case AsSInt | AsUInt | AsClock => {
         val arg = args(0);
         convertExpression(arg);
       }
       case Pad => {
-        val name = generateIntermediateName();
+        val name = generateIntermediateName(default_name);
         val arg = args(0);
         val padDevice = tpe match {
           case UIntType(_) => new ZeroExtend(name, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt)
@@ -167,17 +231,17 @@ object Converter {
       case Shl | Shr => {
         val arg = args(0);
         val const = consts(0);
-        val const_name = generateIntermediateName();
-        val name = generateIntermediateName();
+        val const_name = generateIntermediateName(None);
+        val name = generateIntermediateName(default_name);
         val (ds, cs, plug) = convertExpression(arg);
         ( ds +
-          (const_name -> new Constant(const_name, const.toString(2))) +
-          (name -> new Binary(
-            binTypeOfPrimOp(op),
+          (const_name -> new Constant(const_name, makeConstantString(const, bitWidth(tpe)))) +
+          (name -> new Shift(
+            shiftTypeOfPrimOp(op),
             name, 
             bitWidth(arg.tpe).toInt,
             const.toString(2).length, 
-            bitWidth(tpe).toInt, false, false))
+            bitWidth(tpe).toInt, false, false, false, true))
         , new Connector(plug, new Plug(name, "in1")) ::
           new Connector(new Plug(const_name, "out"), new Plug(name, "in2")) ::
           cs
@@ -187,7 +251,7 @@ object Converter {
       case Cvt => {
         val arg = args(0);
         val (ds, cs, plug) = convertExpression(arg);
-        val name = generateIntermediateName();
+        val name = generateIntermediateName(default_name);
         ( ds +
           (name -> new ZeroExtend(name, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt))
         , new Connector(plug, new Plug(name, "in")) ::
@@ -198,7 +262,7 @@ object Converter {
       case Neg => {
         val arg = args(0);
         val (ds, cs, plug) = convertExpression(arg);
-        val name = generateIntermediateName();
+        val name = generateIntermediateName(default_name);
         ( ds +
           (name -> new Unary(Negation(), name, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt, false))
         , new Connector(plug, new Plug(name, "in")) ::
@@ -209,7 +273,7 @@ object Converter {
       case firrtl.PrimOps.Not => {
         val arg = args(0);
         val (ds, cs, plug) = convertExpression(arg);
-        val name = generateIntermediateName();
+        val name = generateIntermediateName(default_name);
         ( ds +
           (name -> new Unary(digitaljs.Not(), name, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt, false))
         , new Connector(plug, new Plug(name, "in")) ::
@@ -218,7 +282,7 @@ object Converter {
         )
       }
       case firrtl.PrimOps.And | firrtl.PrimOps.Or | firrtl.PrimOps.Xor => {
-        val name = generateIntermediateName();
+        val name = generateIntermediateName(default_name);
         val lhs = args(0);
         val rhs = args(1);
         val (lds, lcs, lhsPlug) = convertExpression(lhs);
@@ -235,7 +299,7 @@ object Converter {
         )
       }
       case Andr | Orr | Xorr => {
-        val name = generateIntermediateName();
+        val name = generateIntermediateName(default_name);
         val arg = args(0);
         val (ds, cs, plug) = convertExpression(arg);
         ( ds
@@ -249,7 +313,7 @@ object Converter {
         )
       }
       case Cat => {
-        val name = generateIntermediateName();
+        val name = generateIntermediateName(default_name);
         val lhs = args(0);
         val rhs = args(1);
         val (lds, lcs, lhsPlug) = convertExpression(lhs);
@@ -269,7 +333,7 @@ object Converter {
         )
       }
       case Bits => {
-        val name = generateIntermediateName();
+        val name = generateIntermediateName(default_name);
         val arg = args(0);
         val hi = consts(0);
         val lo = consts(1);
@@ -287,7 +351,7 @@ object Converter {
         )
       }
       case Head => {
-        val name = generateIntermediateName();
+        val name = generateIntermediateName(default_name);
         val arg = args(0);
         val n = consts(0);
         val (ds, cs, plug) = convertExpression(arg);
@@ -304,14 +368,14 @@ object Converter {
         )
       }
       case Tail => {
-        val name = generateIntermediateName();
+        val name = generateIntermediateName(default_name);
         val arg = args(0);
         val n = consts(0);
         val (ds, cs, plug) = convertExpression(arg);
         ( ds
         + (name -> new BusSlice(
             name,
-            n.toInt,
+            0,
             (bitWidth(arg.tpe) - n).toInt,
             bitWidth(arg.tpe).toInt
           ))
@@ -323,10 +387,22 @@ object Converter {
       case _ => println("Not handled ", op.toString()); (ListMap(), Nil, new Plug("XD", "out"));
     }
 
+  def makeConstantString(
+    value : BigInt,
+    width : BigInt
+  ) : String = {
+    val bits = width.toInt
+    var constant = value.toString(2);
+    while (constant.length < bits) {
+      constant = "0" + constant;
+    }
+    constant
+  }
+
   def convertExpression(
       expr: Expression
   ): (Map[String, Device], List[Connector], Plug) = {
-    val intermediateName = generateIntermediateName();
+    val intermediateName = generateIntermediateName(None);
     convertExpression(expr, intermediateName);
   }
 
@@ -335,9 +411,9 @@ object Converter {
       toplevel: String
   ): (Map[String, Device], List[Connector], Plug) = {
     expr match {
-      case DoPrim(op, args, consts, tpe) => convertPrimitive(op, args, consts, tpe);
+      case DoPrim(op, args, consts, tpe) => convertPrimitive(op, args, consts, tpe, Some(toplevel));
       case FixedLiteral(value, width, point) => {
-        ( ListMap(toplevel -> new Constant(toplevel, value.toString(2)))
+        ( ListMap(toplevel -> new Constant(toplevel, makeConstantString(value, bitWidth(expr.tpe))))
         , Nil
         , new Plug(toplevel, "out") )
       }
@@ -347,8 +423,8 @@ object Converter {
         val (tds, tcs, tvalPlug) = convertExpression(tval);
         val (fds, fcs, fvalPlug) = convertExpression(fval);
         ( (cds ++ tds ++ fds) + (toplevel -> new digitaljs.Mux(toplevel, bitWidth(tpe).toInt, 1))
-        , new Connector(tvalPlug, new Plug(toplevel, "in0")) ::
-          new Connector(fvalPlug, new Plug(toplevel, "in1")) ::
+        , new Connector(fvalPlug, new Plug(toplevel, "in0")) ::
+          new Connector(tvalPlug, new Plug(toplevel, "in1")) ::
           new Connector(condPlug, new Plug(toplevel, "sel")) ::
           ccs ++ tcs ++ fcs
         , new Plug(toplevel, "out")
@@ -356,14 +432,14 @@ object Converter {
       }
       case Reference(name, tpe) => (ListMap(), Nil, new Plug(name, "out"))
       case SIntLiteral(value, width) =>
-        ( ListMap(toplevel -> new Constant(toplevel, value.toString(2)))
+        ( ListMap(toplevel -> new Constant(toplevel, makeConstantString(value, bitWidth(expr.tpe))))
         , Nil
         , new Plug(toplevel, "out") )
       case SubAccess(expr, index, tpe) => ???
       case SubField(expr, name, tpe) => ???
       case SubIndex(expr, value, tpe) => ???
       case UIntLiteral(value, width) => 
-        ( ListMap(toplevel -> new Constant(toplevel, value.toString(2)))
+        ( ListMap(toplevel -> new Constant(toplevel, makeConstantString(value, bitWidth(expr.tpe))))
         , Nil
         , new Plug(toplevel, "out") )
       case ValidIf(cond, value, tpe) => convertExpression(value);
@@ -396,14 +472,17 @@ object Converter {
           readwriters,
           readUnderWrite
           ) =>
-        println("Ignoring memory declaration"); (ListMap(), Nil)
+        ???
       case DefNode(info, name, value) => val (ds, cs, _) = convertExpression(value, name);(ds, cs)
       case DefRegister(info, name, tpe, clock, reset, init) => {
-        val x = generateIntermediateName();
-        val (ds, cs, _) = convertExpression(init);
+        val (ds, cs, clkPlug) = convertExpression(clock);
+        val arst = reset match {
+          case UIntLiteral(value, width) => if (value == 0) None else ??? // Same as below
+          case _ => ??? // Cannot handle reset, no dynamic init in digitaljs
+        }
         return (
-          ds + (x -> new Dff(x, bitWidth(tpe).toInt, new Polarity(true, true, false), "")),
-          cs
+          ds + (name -> new Dff(name, bitWidth(tpe).toInt, new Polarity(Some(false), arst, None), "")),
+          (new Connector(clkPlug, new Plug(name, "clk"))) :: cs
         )
       }
       case DefWire(info, name, tpe) => (ListMap(), Nil)
