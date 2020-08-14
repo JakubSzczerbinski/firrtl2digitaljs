@@ -1,6 +1,6 @@
 // The simplest possible sbt build file is just one line:
 
-scalaVersion := "2.12.10"
+scalaVersion := "2.12.11"
 // That is, to create a valid sbt build, all you've got to do is define the
 // version of Scala you'd like your project to use.
 
@@ -15,7 +15,7 @@ scalaVersion := "2.12.10"
 name := "firrtl2digitaljs"
 version := "1.0"
 
-libraryDependencies += "edu.berkeley.cs" % "firrtl_2.12" % "1.3-SNAPSHOT"
+libraryDependencies += "edu.berkeley.cs" % "firrtl_2.12" % "1.3.2"
 // Note, it's not required for you to define these three settings. These are
 // mostly only necessary if you intend to publish your library's binaries on a
 // place like Sonatype or Bintray.

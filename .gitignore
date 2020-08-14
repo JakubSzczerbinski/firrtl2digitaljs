@@ -11,3 +11,4 @@ project/plugins/project/
 .history
 .cache
 .lib/
+firrtl2digitaljs.jar
