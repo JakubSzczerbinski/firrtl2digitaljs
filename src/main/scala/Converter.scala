@@ -1,7 +1,6 @@
 package firrtl2digitaljs
 
 import firrtl2digitaljs.digitaljs._
-
 import firrtl.ir.DefModule
 import firrtl.Mappers._
 import firrtl.ir._
@@ -15,9 +14,9 @@ import firrtl.PrimOps._
 import firrtl.WRef
 import firrtl.WSubField
 import firrtl.WDefInstance
+import firrtl.getWidth
 import scala.collection.immutable.ListMap
 import scala.collection.immutable.Stream.cons
-import firrtl.getWidth
 
 object Converter {
   var genId : BigInt = BigInt.int2bigInt(0);
@@ -384,7 +383,7 @@ object Converter {
         , new Plug(name, "out")
         )
       }
-      case _ => println("Not handled ", op.toString()); (ListMap(), Nil, new Plug("XD", "out"));
+      case _ => println("Not handled ", op.toString()); (ListMap(), Nil, new Plug("XD", "out")); // TODO Cleanup
     }
 
   def makeConstantString(
@@ -435,9 +434,9 @@ object Converter {
         ( ListMap(toplevel -> new Constant(toplevel, makeConstantString(value, bitWidth(expr.tpe))))
         , Nil
         , new Plug(toplevel, "out") )
-      case SubAccess(expr, index, tpe) => ???
-      case SubField(expr, name, tpe) => ???
-      case SubIndex(expr, value, tpe) => ???
+      case SubAccess(expr, index, tpe) => ??? // Propably implementation not needed (not availble in low form)
+      case SubField(expr, name, tpe) => ??? // Same /\
+      case SubIndex(expr, value, tpe) => ??? // Same /\
       case UIntLiteral(value, width) => 
         ( ListMap(toplevel -> new Constant(toplevel, makeConstantString(value, bitWidth(expr.tpe))))
         , Nil
@@ -472,11 +471,11 @@ object Converter {
           readwriters,
           readUnderWrite
           ) =>
-        ???
+        ??? // TODO create new memory module
       case DefNode(info, name, value) => val (ds, cs, _) = convertExpression(value, name);(ds, cs)
       case DefRegister(info, name, tpe, clock, reset, init) => {
         val (ds, cs, clkPlug) = convertExpression(clock);
-        val arst = reset match {
+        val arst = reset match { // TODO Implement reset with weird initiation
           case UIntLiteral(value, width) => if (value == 0) None else ??? // Same as below
           case _ => ??? // Cannot handle reset, no dynamic init in digitaljs
         }
@@ -487,7 +486,7 @@ object Converter {
       }
       case DefWire(info, name, tpe) => (ListMap(), Nil)
       case IsInvalid(info, expr)    => (ListMap(), Nil)
-      case Stop(info, ret, clk, en) => (ListMap(), Nil)
+      case Stop(info, ret, clk, en) => (ListMap(), Nil) // TODO Find out why its ignored
       case EmptyStmt                => (ListMap(), Nil)
       case Print(info, string, args, clk, en) =>
         println("Ignoring print statement"); (ListMap(), Nil)
