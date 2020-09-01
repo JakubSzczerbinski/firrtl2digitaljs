@@ -65,10 +65,10 @@ object Converter {
   def convertPort(port: Port, portNumber: Int): (String, Device) = {
     port.direction match {
       case firrtl.ir.Input =>
-        (port.name, new Input(port.name, port.name, portNumber, bitWidth(port.tpe).intValue, isClockType(port.tpe)))
+        (port.name, new Input(port.info.toString(), port.name, portNumber, bitWidth(port.tpe).intValue, isClockType(port.tpe)))
       case firrtl.ir.Output =>
         (port.name, new Output(
-          port.name,
+          port.info.toString(),
           port.name,
           portNumber,
           bitWidth(port.tpe).intValue
@@ -151,19 +151,20 @@ object Converter {
     args: Seq[Expression],
     consts: Seq[BigInt],
     tpe: Type,
-    default_name: Option[String]
+    default_name: Option[String],
+    label: String,
   ): (Map[String, Device], List[Connector], Plug) = 
     op match {
       case Add | Sub | Mul | Div | Rem =>
         val name = generateIntermediateName(default_name);
         val lhs = args(0);
         val rhs = args(1);
-        val (lds, lcs, lhsPlug) = convertExpression(lhs);
-        val (rds, rcs, rhsPlug) = convertExpression(rhs);
+        val (lds, lcs, lhsPlug) = convertExpression(lhs, label);
+        val (rds, rcs, rhsPlug) = convertExpression(rhs, label);
         ( (lds ++ rds)
         + (name -> new BinaryArith(
             binTypeOfPrimOp(op), 
-            name, 
+            label, 
             bitWidth(lhs.tpe).toInt, 
             bitWidth(rhs.tpe).toInt, 
             bitWidth(tpe).toInt, false, false))
@@ -177,12 +178,12 @@ object Converter {
         val name = generateIntermediateName(default_name);
         val lhs = args(0);
         val rhs = args(1);
-        val (lds, lcs, lhsPlug) = convertExpression(lhs);
-        val (rds, rcs, rhsPlug) = convertExpression(rhs);
+        val (lds, lcs, lhsPlug) = convertExpression(lhs, label);
+        val (rds, rcs, rhsPlug) = convertExpression(rhs, label);
         ( (lds ++ rds)
         + (name -> new Comparision(
             compTypeOfPrimOp(op), 
-            name, 
+            label, 
             bitWidth(lhs.tpe).toInt, 
             bitWidth(rhs.tpe).toInt, 
             false, false))
@@ -195,12 +196,12 @@ object Converter {
         val name = generateIntermediateName(default_name);
         val lhs = args(0);
         val rhs = args(1);
-        val (lds, lcs, lhsPlug) = convertExpression(lhs);
-        val (rds, rcs, rhsPlug) = convertExpression(rhs);
+        val (lds, lcs, lhsPlug) = convertExpression(lhs, label);
+        val (rds, rcs, rhsPlug) = convertExpression(rhs, label);
         ( (lds ++ rds)
         + (name -> new Shift(
             shiftTypeOfPrimOp(op), 
-            name, 
+            label, 
             bitWidth(lhs.tpe).toInt, 
             bitWidth(rhs.tpe).toInt, 
             bitWidth(tpe).toInt, false, false, false, true))
@@ -212,16 +213,16 @@ object Converter {
 
       case AsSInt | AsUInt | AsClock => {
         val arg = args(0);
-        convertExpression(arg);
+        convertExpression(arg, label);
       }
       case Pad => {
         val name = generateIntermediateName(default_name);
         val arg = args(0);
         val padDevice = tpe match {
-          case UIntType(_) => new ZeroExtend(name, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt)
-          case SIntType(_) => new SignExtend(name, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt)
+          case UIntType(_) => new ZeroExtend(label, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt)
+          case SIntType(_) => new SignExtend(label, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt)
         }
-        val (ds, cs, plug) = convertExpression(args(0))
+        val (ds, cs, plug) = convertExpression(args(0), label)
         ( ds + (name -> padDevice)
         , new Connector(plug, new Plug(name, "in")) :: cs
         , new Plug(name, "out")
@@ -232,12 +233,12 @@ object Converter {
         val const = consts(0);
         val const_name = generateIntermediateName(None);
         val name = generateIntermediateName(default_name);
-        val (ds, cs, plug) = convertExpression(arg);
+        val (ds, cs, plug) = convertExpression(arg, label);
         ( ds +
-          (const_name -> new Constant(const_name, makeConstantString(const, bitWidth(tpe)))) +
+          (const_name -> new Constant(label, makeConstantString(const, bitWidth(tpe)))) +
           (name -> new Shift(
             shiftTypeOfPrimOp(op),
-            name, 
+            label, 
             bitWidth(arg.tpe).toInt,
             const.toString(2).length, 
             bitWidth(tpe).toInt, false, false, false, true))
@@ -249,10 +250,10 @@ object Converter {
       }
       case Cvt => {
         val arg = args(0);
-        val (ds, cs, plug) = convertExpression(arg);
+        val (ds, cs, plug) = convertExpression(arg, label);
         val name = generateIntermediateName(default_name);
         ( ds +
-          (name -> new ZeroExtend(name, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt))
+          (name -> new ZeroExtend(label, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt))
         , new Connector(plug, new Plug(name, "in")) ::
           cs
         , new Plug(name, "out")
@@ -260,10 +261,10 @@ object Converter {
       }
       case Neg => {
         val arg = args(0);
-        val (ds, cs, plug) = convertExpression(arg);
+        val (ds, cs, plug) = convertExpression(arg, label);
         val name = generateIntermediateName(default_name);
         ( ds +
-          (name -> new Unary(Negation(), name, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt, false))
+          (name -> new Unary(Negation(), label, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt, false))
         , new Connector(plug, new Plug(name, "in")) ::
           cs
         , new Plug(name, "out")
@@ -271,10 +272,10 @@ object Converter {
       }
       case firrtl.PrimOps.Not => {
         val arg = args(0);
-        val (ds, cs, plug) = convertExpression(arg);
+        val (ds, cs, plug) = convertExpression(arg, label);
         val name = generateIntermediateName(default_name);
         ( ds +
-          (name -> new Unary(digitaljs.Not(), name, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt, false))
+          (name -> new Unary(digitaljs.Not(), label, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt, false))
         , new Connector(plug, new Plug(name, "in")) ::
           cs
         , new Plug(name, "out")
@@ -284,12 +285,12 @@ object Converter {
         val name = generateIntermediateName(default_name);
         val lhs = args(0);
         val rhs = args(1);
-        val (lds, lcs, lhsPlug) = convertExpression(lhs);
-        val (rds, rcs, rhsPlug) = convertExpression(rhs);
+        val (lds, lcs, lhsPlug) = convertExpression(lhs, label);
+        val (rds, rcs, rhsPlug) = convertExpression(rhs, label);
         ( (lds ++ rds)
         + (name -> new BinaryGate(
             binGateTypeOfPrimOp(op),
-            name, 
+            label,
             bitWidth(tpe).toInt))
         , new Connector(lhsPlug, new Plug(name, "in1")) ::
           new Connector(rhsPlug, new Plug(name, "in2")) ::
@@ -300,11 +301,11 @@ object Converter {
       case Andr | Orr | Xorr => {
         val name = generateIntermediateName(default_name);
         val arg = args(0);
-        val (ds, cs, plug) = convertExpression(arg);
+        val (ds, cs, plug) = convertExpression(arg, label);
         ( ds
         + (name -> new ReduceGate(
             reduceGateOfPrimOp(op),
-            name, 
+            label,
             bitWidth(tpe).toInt))
         , new Connector(plug, new Plug(name, "in")) ::
           cs
@@ -315,11 +316,11 @@ object Converter {
         val name = generateIntermediateName(default_name);
         val lhs = args(0);
         val rhs = args(1);
-        val (lds, lcs, lhsPlug) = convertExpression(lhs);
-        val (rds, rcs, rhsPlug) = convertExpression(rhs);
+        val (lds, lcs, lhsPlug) = convertExpression(lhs, label);
+        val (rds, rcs, rhsPlug) = convertExpression(rhs, label);
         ( (lds ++ rds)
         + (name -> new BusGroup(
-            name, 
+            label,
             Array[Group](
               new Group(bitWidth(lhs.tpe).toInt),
               new Group(bitWidth(rhs.tpe).toInt)
@@ -336,10 +337,10 @@ object Converter {
         val arg = args(0);
         val hi = consts(0);
         val lo = consts(1);
-        val (ds, cs, plug) = convertExpression(arg);
+        val (ds, cs, plug) = convertExpression(arg, label);
         ( ds
         + (name -> new BusSlice(
-            name,
+            label,
             lo.toInt,
             (hi - lo + 1).toInt,
             bitWidth(arg.tpe).toInt
@@ -353,10 +354,10 @@ object Converter {
         val name = generateIntermediateName(default_name);
         val arg = args(0);
         val n = consts(0);
-        val (ds, cs, plug) = convertExpression(arg);
+        val (ds, cs, plug) = convertExpression(arg, label);
         ( ds
         + (name -> new BusSlice(
-            name,
+            label,
             0,
             n.toInt,
             bitWidth(arg.tpe).toInt
@@ -370,10 +371,10 @@ object Converter {
         val name = generateIntermediateName(default_name);
         val arg = args(0);
         val n = consts(0);
-        val (ds, cs, plug) = convertExpression(arg);
+        val (ds, cs, plug) = convertExpression(arg, label);
         ( ds
         + (name -> new BusSlice(
-            name,
+            label,
             0,
             (bitWidth(arg.tpe) - n).toInt,
             bitWidth(arg.tpe).toInt
@@ -399,29 +400,31 @@ object Converter {
   }
 
   def convertExpression(
-      expr: Expression
+      expr: Expression,
+      label : String
   ): (Map[String, Device], List[Connector], Plug) = {
     val intermediateName = generateIntermediateName(None);
-    convertExpression(expr, intermediateName);
+    convertExpression(expr, intermediateName, label);
   }
 
   def convertExpression(
       expr: Expression,
-      toplevel: String
+      toplevel: String,
+      label: String
   ): (Map[String, Device], List[Connector], Plug) = {
     expr match {
-      case DoPrim(op, args, consts, tpe) => convertPrimitive(op, args, consts, tpe, Some(toplevel));
+      case DoPrim(op, args, consts, tpe) => convertPrimitive(op, args, consts, tpe, Some(toplevel), label);
       case FixedLiteral(value, width, point) => {
-        ( ListMap(toplevel -> new Constant(toplevel, makeConstantString(value, bitWidth(expr.tpe))))
+        ( ListMap(toplevel -> new Constant(label, makeConstantString(value, bitWidth(expr.tpe))))
         , Nil
         , new Plug(toplevel, "out") )
       }
       case WRef(name, tpe, kind, flow) => (ListMap(), Nil, new Plug(name, "out"))
       case firrtl.ir.Mux(cond, tval, fval, tpe) => {
-        val (cds, ccs, condPlug) = convertExpression(cond);
-        val (tds, tcs, tvalPlug) = convertExpression(tval);
-        val (fds, fcs, fvalPlug) = convertExpression(fval);
-        ( (cds ++ tds ++ fds) + (toplevel -> new digitaljs.Mux(toplevel, bitWidth(tpe).toInt, 1))
+        val (cds, ccs, condPlug) = convertExpression(cond, label);
+        val (tds, tcs, tvalPlug) = convertExpression(tval, label);
+        val (fds, fcs, fvalPlug) = convertExpression(fval, label);
+        ( (cds ++ tds ++ fds) + (toplevel -> new digitaljs.Mux(label, bitWidth(tpe).toInt, 1))
         , new Connector(fvalPlug, new Plug(toplevel, "in0")) ::
           new Connector(tvalPlug, new Plug(toplevel, "in1")) ::
           new Connector(condPlug, new Plug(toplevel, "sel")) ::
@@ -431,17 +434,17 @@ object Converter {
       }
       case Reference(name, tpe) => (ListMap(), Nil, new Plug(name, "out"))
       case SIntLiteral(value, width) =>
-        ( ListMap(toplevel -> new Constant(toplevel, makeConstantString(value, bitWidth(expr.tpe))))
+        ( ListMap(toplevel -> new Constant(label, makeConstantString(value, bitWidth(expr.tpe))))
         , Nil
         , new Plug(toplevel, "out") )
       case SubAccess(expr, index, tpe) => ??? // Propably implementation not needed (not availble in low form)
       case SubField(expr, name, tpe) => ??? // Same /\
       case SubIndex(expr, value, tpe) => ??? // Same /\
       case UIntLiteral(value, width) => 
-        ( ListMap(toplevel -> new Constant(toplevel, makeConstantString(value, bitWidth(expr.tpe))))
+        ( ListMap(toplevel -> new Constant(label, makeConstantString(value, bitWidth(expr.tpe))))
         , Nil
         , new Plug(toplevel, "out") )
-      case ValidIf(cond, value, tpe) => convertExpression(value);
+      case ValidIf(cond, value, tpe) => convertExpression(value, label);
     }
   }
 
@@ -455,7 +458,7 @@ object Converter {
           .fold((ListMap[String, Device](), Nil))((a, b) => (a._1 ++ b._1, a._2 ++ b._2))
       case Connect(info, loc, expr) =>
         val sinkPlug = getPlug(loc);
-        val (ds, cs, sourcePlug) = convertExpression(expr);
+        val (ds, cs, sourcePlug) = convertExpression(expr, info.toString());
         (ds, new Connector(sourcePlug, sinkPlug) :: cs)
       case DefInstance(info, name, module) => (ListMap(name -> new Subcircuit(name, module)), Nil)
       case WDefInstance(info, name, module, tpe) => (ListMap(name -> new Subcircuit(name, module)), Nil)
@@ -472,15 +475,15 @@ object Converter {
           readUnderWrite
           ) =>
         ??? // TODO create new memory module
-      case DefNode(info, name, value) => val (ds, cs, _) = convertExpression(value, name);(ds, cs)
+      case DefNode(info, name, value) => val (ds, cs, _) = convertExpression(value, name, info.toString());(ds, cs)
       case DefRegister(info, name, tpe, clock, reset, init) => {
-        val (ds, cs, clkPlug) = convertExpression(clock);
+        val (ds, cs, clkPlug) = convertExpression(clock, info.toString());
         val arst = reset match { // TODO Implement reset with weird initiation
           case UIntLiteral(value, width) => if (value == 0) None else ??? // Same as below
           case _ => ??? // Cannot handle reset, no dynamic init in digitaljs
         }
         return (
-          ds + (name -> new Dff(name, bitWidth(tpe).toInt, new Polarity(Some(false), arst, None), "")),
+          ds + (name -> new Dff(info.toString(), bitWidth(tpe).toInt, new Polarity(Some(false), arst, None), "")),
           (new Connector(clkPlug, new Plug(name, "clk"))) :: cs
         )
       }
