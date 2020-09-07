@@ -18,10 +18,46 @@ import firrtl.getWidth
 import scala.collection.immutable.ListMap
 import scala.collection.immutable.Stream.cons
 
-object Converter {
-  var genId : BigInt = BigInt.int2bigInt(0);
-  def convert(circuit : firrtl.ir.Circuit) : DigitalJs = convertFirrtl(circuit);
+abstract class MemPortType() {}
 
+case object Read extends MemPortType {}
+case object Write extends MemPortType {}
+case object ReadWrite extends MemPortType {}
+
+object MemPort {
+  def andGateName(mem_name : String, index : Int) : String =
+    mem_name + "_wr_and" + index
+}
+
+class MemPort(val index : Int, val name : String, val tpe : MemPortType) {
+  def makePlug(device_name : String, endpoint : String) : Plug =
+    (tpe match {
+      case Read => endpoint match {
+        case "data" => new Plug(device_name, "rd" + index + "data")
+        case "addr" => new Plug(device_name, "rd" + index + "addr")
+        case "en" => new Plug(device_name, "rd" + index + "en")
+        case "clk" => new Plug(device_name, "rd" + index + "clk")
+      }
+      case Write => endpoint match {
+        case "data" => new Plug(device_name, "wr" + index + "data")
+        case "mask" => new Plug(MemPort.andGateName(device_name, index), "in1")
+        case "addr" => new Plug(device_name, "wr" + index + "addr")
+        case "en" => new Plug(MemPort.andGateName(device_name, index), "in2")
+        case "clk" => new Plug(device_name, "wr" + index + "clk")
+      }
+    })
+}
+
+class Converter {
+  var genId : BigInt = BigInt.int2bigInt(0);
+  var memory_ports : ListMap[String, List[MemPort]] = ListMap.empty;
+
+  def addPort(name : String, mem_port : MemPort) = {
+    val portList = memory_ports get name getOrElse Nil
+    memory_ports = memory_ports + (name -> (mem_port :: portList))
+  }
+
+  def convert(circuit : firrtl.ir.Circuit) : DigitalJs = convertFirrtl(circuit);
   def convertFirrtl(circuit : firrtl.ir.Circuit) : DigitalJs = {
     val circuits = circuit.modules map convertModule toMap 
     val maybeToplevel = circuits find {case (name, _) => name == circuit.main }
@@ -90,11 +126,19 @@ object Converter {
     (module.name, new digitaljs.Circuit(module.name, io_devices ++ devices, connectors))
   }
 
+  
+
   def getPlug(expr: Expression): Plug =
     expr match {
       case WRef(name, tpe, kind, flow) => new Plug(name, "in")
       case WSubField(WRef(name, tp1, kind, f1), port, tp0, f0) =>
         new Plug(name, port)
+      case WSubField(WSubField(WRef(name, tp2, kind, f2), mem_port, tp1, f1), field, tp0, f0) =>
+        memory_ports
+          .get(name)
+          .flatMap((_ find (_.name == mem_port)))
+          .map(port => port.makePlug(name, field))
+          .get
       case Reference(name, tpe) => new Plug(name, "in")
       case _ => println(expr); ???
     }
@@ -264,7 +308,7 @@ object Converter {
         val (ds, cs, plug) = convertExpression(arg, label);
         val name = generateIntermediateName(default_name);
         ( ds +
-          (name -> new Unary(Negation(), label, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt, false))
+          (name -> new Unary(Negation, label, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt, false))
         , new Connector(plug, new Plug(name, "in")) ::
           cs
         , new Plug(name, "out")
@@ -275,7 +319,7 @@ object Converter {
         val (ds, cs, plug) = convertExpression(arg, label);
         val name = generateIntermediateName(default_name);
         ( ds +
-          (name -> new Unary(digitaljs.Not(), label, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt, false))
+          (name -> new UnaryGate(digitaljs.Not, label, bitWidth(arg.tpe).toInt))
         , new Connector(plug, new Plug(name, "in")) ::
           cs
         , new Plug(name, "out")
@@ -420,6 +464,7 @@ object Converter {
         , new Plug(toplevel, "out") )
       }
       case WRef(name, tpe, kind, flow) => (ListMap(), Nil, new Plug(name, "out"))
+      case WSubField(_, name, tpe, flow) => (ListMap(), Nil, getPlug(expr))
       case firrtl.ir.Mux(cond, tval, fval, tpe) => {
         val (cds, ccs, condPlug) = convertExpression(cond, label);
         val (tds, tcs, tvalPlug) = convertExpression(tval, label);
@@ -448,6 +493,7 @@ object Converter {
     }
   }
 
+
   def convertStatement(
       statetment: Statement
   ): (Map[String, Device], List[Connector]) = {
@@ -474,8 +520,67 @@ object Converter {
           readwriters,
           readUnderWrite
           ) =>
-        ??? // TODO create new memory module
-      case DefNode(info, name, value) => val (ds, cs, _) = convertExpression(value, name, info.toString());(ds, cs)
+
+        val convertReader : ((String, Int)) => ReadPort = {
+          case (portName, index) => {
+            addPort(name, new MemPort(index, portName, Read))
+            new ReadPort(true, true, false)
+          }
+        }
+
+        val convertWriter : ((String, Int)) => WritePort = {
+          case (portName, index) => {
+            addPort(name, new MemPort(index, portName, Write))
+            new WritePort(true, true)
+          }
+        }
+
+        val andGateOfWriter : ((String, Int)) => (String, Device) = {
+          case (portName, index) => 
+            (name + "_wr_and" + index -> new BinaryGate(
+              digitaljs.And,
+              "",
+              1
+            ))
+        }
+
+        val connectToEnableOfWriter : ((String, Int)) => Connector = {
+          case (portName, index) =>
+            new Connector(
+              new Plug(MemPort.andGateName(name, index), "out"),
+              new Plug(name, "wr" + index + "en")
+            )
+        }
+
+        ( 
+          (writers.zipWithIndex map andGateOfWriter).toMap +
+          (name -> new Memory(
+            info.toString(),
+            bitWidth(dataType).toInt,
+            depth.toInt,
+            Math.pow(2, bitWidth(dataType).toDouble).toInt,
+            0.toInt,
+            readers.zipWithIndex map convertReader,
+            writers.zipWithIndex map convertWriter,
+            "")
+          )
+        , 
+          (writers.zipWithIndex map connectToEnableOfWriter).toList
+        )
+      case DefNode(info, name, value) => {
+        val (ds, cs, plug) = convertExpression(value, name, info.toString());
+        if (plug.id == name)
+          (ds, cs)
+        else {
+          val bits = bitWidth(value.tpe).toInt
+          ( ds +
+            (name -> new UnaryGate(Repeater, info.toString(), bits))
+          , new Connector(plug, new Plug(name, "in")) ::
+            cs
+          )
+
+        }
+      }
       case DefRegister(info, name, tpe, clock, reset, init) => {
         val (ds, cs, clkPlug) = convertExpression(clock, info.toString());
         val arst = reset match { // TODO Implement reset with weird initiation

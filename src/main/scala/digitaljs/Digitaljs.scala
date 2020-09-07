@@ -1,5 +1,7 @@
 package firrtl2digitaljs.digitaljs
 
+import org.json4s.native.Json
+
 trait JsonSerializable {
   def toJson(): String
 }
@@ -237,20 +239,12 @@ case class Shift(tpe: ShiftType, label: String, bits_in1: Int, bits_in2: Int, bi
 
 abstract class UnaryType extends JsonSerializable{}
 
-case class Negation() extends UnaryType {
+case object Negation extends UnaryType {
   override def toJson(): String = "Negation"
 }
 
-case class UnaryPlus() extends UnaryType {
+case object UnaryPlus extends UnaryType {
   override def toJson(): String = "UnaryPlus"
-}
-
-case class Not() extends UnaryType {
-  override def toJson(): String = "Not"
-}
-
-case class Repeater() extends UnaryType {
-  override def toJson(): String = "Repeater"
 }
 
 case class Unary(tpe: UnaryType, label: String, bits_in: Int, bits_out: Int, signed: Boolean) extends Device {
@@ -263,6 +257,25 @@ case class Unary(tpe: UnaryType, label: String, bits_in: Int, bits_out: Int, sig
     "out": $bits_out
   },
   "signed": $signed
+}"""
+}
+
+abstract class UnaryGateType extends JsonSerializable{}
+
+case object Not extends UnaryGateType {
+  override def toJson(): String = "Not"
+}
+
+case object Repeater extends UnaryGateType {
+  override def toJson(): String = "Repeater"
+}
+
+case class UnaryGate(tpe: UnaryGateType, label: String, bits: Int) extends Device {
+  override def toJson(): String = s"""
+{
+  "type": "${tpe.toJson()}",
+  "label": "$label",
+  "bits": $bits
 }"""
 }
 
@@ -407,8 +420,57 @@ case class BusSlice(label: String, first: Int, count : Int, total: Int) extends 
 }"""
 }
 
+class ReadPort(
+  enable_polarity: Boolean,
+  clock_polarity: Boolean,
+  transparent: Boolean
+) extends JsonSerializable {
+  override def toJson(): String = s"""
+{
+  "enable_polarity": $enable_polarity,
+  "clock_polarity": $clock_polarity,
+  "transparent": $transparent
+}"""
+}
 
-class Plug(id: String, port: String) extends JsonSerializable {
+class WritePort(
+  enable_polarity: Boolean,
+  clock_polarity: Boolean
+) extends JsonSerializable {
+  override def toJson(): String = s"""
+{
+  "enable_polarity": $enable_polarity,
+  "clock_polarity": $clock_polarity
+}"""
+}
+
+
+case class Memory(
+  label: String,
+  bits: Int,
+  abits: Int,
+  words: Int,
+  offset: Int,
+  rdports: Seq[ReadPort],
+  wrports: Seq[WritePort], 
+  memdata: String
+) extends Device {
+  override def toJson(): String = s"""
+  {
+    "type": "Memory",
+    "label": "$label",
+    "bits": $bits,
+    "abits": $abits,
+    "words": $words,
+    "offset": $offset,
+    "rdports": ${JsonHelpers.serialize_list(rdports)},
+    "wrports": ${JsonHelpers.serialize_list(wrports)},
+    "memdata": "$memdata"
+  }"""
+}
+
+
+class Plug(val id: String, val port: String) extends JsonSerializable {
   def toJson(): String = s"""
 {
   "id": "$id",
@@ -417,7 +479,7 @@ class Plug(id: String, port: String) extends JsonSerializable {
 
 }
 
-class Connector(from: Plug, to: Plug) extends JsonSerializable {
+class Connector(val from: Plug, val to: Plug) extends JsonSerializable {
   def toJson(): String = s"""
 {
   "to": ${JsonHelpers.indent(to.toJson())},
@@ -459,4 +521,5 @@ class DigitalJs(
 """
 
 }
+
 

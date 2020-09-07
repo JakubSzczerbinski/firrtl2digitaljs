@@ -9,6 +9,7 @@ import firrtl.CircuitState
 import scala.collection.immutable.Stream.Cons
 import java.io.PrintStream
 import java.io.ByteArrayOutputStream
+import firrtl2digitaljs.digitaljs.DigitalJs
 
 object Main {
 
@@ -22,12 +23,13 @@ object Main {
       try {
         // Redirects firrtl compiler log to firrtl.log
         setOutput("firrtl.log");
-        println(convert(args.head))
+        val djs = convert(args.head);
+        println(djs)
       }
       catch {
         case ex : java.nio.file.NoSuchFileException =>
           println(s"File not found ${ex.getMessage()}");
-        case ex : Throwable => 
+        case ex : Throwable =>
           println(s"Failed to convert. Exception message ${ex}")
       }
 
@@ -38,7 +40,8 @@ object Main {
   def convert(file : String) : String = {
     val firrtl = parseFile(file, UseInfo);
     val low_firrtl = lowerFirrtl(firrtl);
-    val digitaljs = Converter.convert(low_firrtl);
+    println(low_firrtl.serialize);
+    val digitaljs = (new Converter).convert(low_firrtl);
     digitaljs.toJson();
   }
 
