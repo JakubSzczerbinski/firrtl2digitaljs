@@ -17,6 +17,9 @@ import firrtl.WDefInstance
 import firrtl.getWidth
 import scala.collection.immutable.ListMap
 import scala.collection.immutable.Stream.cons
+import Chisel.Bool
+import firrtl.SourceFlow
+import firrtl.SinkFlow
 
 abstract class MemPortType() {}
 
@@ -57,14 +60,17 @@ class Converter {
     memory_ports = memory_ports + (name -> (mem_port :: portList))
   }
 
-  def convert(circuit : firrtl.ir.Circuit) : DigitalJs = convertFirrtl(circuit);
-  def convertFirrtl(circuit : firrtl.ir.Circuit) : DigitalJs = {
+  def convert(circuit : firrtl.ir.Circuit) : DigitalJs = convertWithOpts(circuit, true)
+  def convertWithOpts(circuit : firrtl.ir.Circuit, io_transformed : Boolean) : DigitalJs = {
     val circuits = circuit.modules map convertModule toMap 
     val maybeToplevel = circuits find {case (name, _) => name == circuit.main }
     maybeToplevel match {
       case Some((_, toplevel)) => 
         new DigitalJs(
-          toplevel.devices mapValues transformIO, 
+          if (io_transformed)
+            toplevel.devices mapValues transformIO
+          else
+            toplevel.devices,
           toplevel.connectors, 
           circuits filter { case (name, _) => name != circuit.main })
       case None => {
@@ -112,6 +118,35 @@ class Converter {
     }
   }
 
+  def correctInputPlugsOfOutputs(ports : Seq[Port], connectors_ : List[Connector]) = {
+    var connectors = connectors_
+    var changed = true
+    while (changed) {
+      changed = false
+      val inputPlugsOfOutputPorts = ports flatMap (port => {
+        port.direction match {
+          case firrtl.ir.Input => Seq.empty
+          case firrtl.ir.Output => 
+            connectors
+              .find(conn => conn.to.id == port.name)
+              .map(conn => (port.name, conn.from))
+              .toSeq
+        }
+      })
+      connectors = connectors map (conn => {
+        val maybeFrom = inputPlugsOfOutputPorts find { case (outputName, plug) => conn.from.id == outputName } map (_._2)
+        maybeFrom match {
+          case None => conn
+          case Some(from) => {
+            changed = true
+            new Connector(from, conn.to)
+          }
+        }
+      })
+    }
+    connectors
+  }
+
   def convertModule(module: DefModule): (String, digitaljs.Circuit) = {
     val io_devices = module.ports.zipWithIndex.map {
       case (p, i) => convertPort(p, i)
@@ -123,6 +158,7 @@ class Converter {
       devices = d ++ devices;
       connectors = c ++ connectors;
     })
+    connectors = correctInputPlugsOfOutputs(module.ports, connectors)
     (module.name, new digitaljs.Circuit(module.name, io_devices ++ devices, connectors))
   }
 
@@ -139,8 +175,9 @@ class Converter {
           .flatMap((_ find (_.name == mem_port)))
           .map(port => port.makePlug(name, field))
           .get
-      case Reference(name, tpe) => new Plug(name, "in")
-      case _ => println(expr); ???
+      case Reference(name, tpe) => 
+        new Plug(name, "in")
+      case _ => ???
     }
 
   def generateIntermediateName(name: Option[String]): String = {
@@ -350,7 +387,7 @@ class Converter {
         + (name -> new ReduceGate(
             reduceGateOfPrimOp(op),
             label,
-            bitWidth(tpe).toInt))
+            bitWidth(arg.tpe).toInt))
         , new Connector(plug, new Plug(name, "in")) ::
           cs
         , new Plug(name, "out")
@@ -451,10 +488,12 @@ class Converter {
     convertExpression(expr, intermediateName, label);
   }
 
+  def x(y : firrtl.Kind) : firrtl.Kind = y
+
   def convertExpression(
       expr: Expression,
       toplevel: String,
-      label: String
+      label: String,
   ): (Map[String, Device], List[Connector], Plug) = {
     expr match {
       case DoPrim(op, args, consts, tpe) => convertPrimitive(op, args, consts, tpe, Some(toplevel), label);
@@ -463,7 +502,8 @@ class Converter {
         , Nil
         , new Plug(toplevel, "out") )
       }
-      case WRef(name, tpe, kind, flow) => (ListMap(), Nil, new Plug(name, "out"))
+      case WRef(name, tpe, kind, flow) =>
+        (ListMap(), Nil, new Plug(name, "out"))
       case WSubField(_, name, tpe, flow) => (ListMap(), Nil, getPlug(expr))
       case firrtl.ir.Mux(cond, tval, fval, tpe) => {
         val (cds, ccs, condPlug) = convertExpression(cond, label);
@@ -477,7 +517,9 @@ class Converter {
         , new Plug(toplevel, "out")
         )
       }
-      case Reference(name, tpe) => (ListMap(), Nil, new Plug(name, "out"))
+      case Reference(name, tpe) => {
+        (ListMap(), Nil, new Plug(name, "out"))
+      }
       case SIntLiteral(value, width) =>
         ( ListMap(toplevel -> new Constant(label, makeConstantString(value, bitWidth(expr.tpe))))
         , Nil
@@ -588,7 +630,7 @@ class Converter {
           case _ => ??? // Cannot handle reset, no dynamic init in digitaljs
         }
         return (
-          ds + (name -> new Dff(info.toString(), bitWidth(tpe).toInt, new Polarity(Some(false), arst, None), "")),
+          ds + (name -> new Dff(info.toString(), bitWidth(tpe).toInt, new Polarity(Some(true), arst, None), "")),
           (new Connector(clkPlug, new Plug(name, "clk"))) :: cs
         )
       }

@@ -381,7 +381,7 @@ case class Output(label: String, net: String, order: Int, bits: Int) extends Dev
   "label": "$label",
   "net": "$net",
   "order": $order,
-  "bits": "$bits"
+  "bits": $bits
 }"""
 }
 

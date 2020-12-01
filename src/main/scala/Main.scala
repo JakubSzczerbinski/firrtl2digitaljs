@@ -23,7 +23,8 @@ object Main {
       try {
         // Redirects firrtl compiler log to firrtl.log
         setOutput("firrtl.log");
-        val djs = convert(args.head);
+        val firrtl = parseFile(args.head, UseInfo);
+        val djs = convert(firrtl);
         println(djs)
       }
       catch {
@@ -37,9 +38,8 @@ object Main {
       println(s"Ignoring files: ${args.tail mkString ", "}");
   }
 
-  def convert(file : String) : String = {
-    val firrtl = parseFile(file, UseInfo);
-    val low_firrtl = lowerFirrtl(firrtl);
+  def convert(circuit : firrtl.ir.Circuit) : String = {
+    val low_firrtl = lowerFirrtl(circuit);
     println(low_firrtl.serialize);
     val digitaljs = (new Converter).convert(low_firrtl);
     digitaljs.toJson();

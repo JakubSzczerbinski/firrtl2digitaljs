@@ -15,7 +15,18 @@ scalaVersion := "2.12.11"
 name := "firrtl2digitaljs"
 version := "1.0"
 
-libraryDependencies += "edu.berkeley.cs" % "firrtl_2.12" % "1.3.2"
+libraryDependencies ++= Seq(
+  "edu.berkeley.cs" % "firrtl_2.12" % "1.3.2",
+  "edu.berkeley.cs" %% "chisel3" % "3.3.2",
+  "edu.berkeley.cs" %% "firrtl-interpreter" % "1.3.2",
+  "org.scalatest" % "scalatest_2.12" % "3.2.0",
+  "org.scalacheck" %% "scalacheck" % "1.14.1",
+  "com.github.pathikrit" %% "dijon" % "0.3.0",
+  "com.lihaoyi" %% "os-lib" % "0.7.1",
+)
+
+scalacOptions += "-Xsource:2.11" 
+scalacOptions += "-language:dynamics"
 // Note, it's not required for you to define these three settings. These are
 // mostly only necessary if you intend to publish your library's binaries on a
 // place like Sonatype or Bintray.

@@ -13,3 +13,7 @@ project/plugins/project/
 .lib/
 firrtl2digitaljs.jar
 .vscode
+external/
+.scalafmt.conf
+project/project
+project/metals.sbt
