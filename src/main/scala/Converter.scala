@@ -227,6 +227,11 @@ class Converter {
       case Shl | Dshl => ShiftLeft()
     }
 
+  def isSigned(tpe : Type) : Boolean = tpe match {
+    case SIntType(width) => true
+    case UIntType(width) => false
+  }
+
   def convertPrimitive(
     op: PrimOp,
     args: Seq[Expression],
@@ -285,7 +290,10 @@ class Converter {
             label, 
             bitWidth(lhs.tpe).toInt, 
             bitWidth(rhs.tpe).toInt, 
-            bitWidth(tpe).toInt, false, false, false, true))
+            bitWidth(tpe).toInt,
+            isSigned(lhs.tpe),
+            isSigned(rhs.tpe),
+            isSigned(tpe), false))
         , new Connector(lhsPlug, new Plug(name, "in1")) ::
           new Connector(rhsPlug, new Plug(name, "in2")) ::
           lcs ++ rcs
