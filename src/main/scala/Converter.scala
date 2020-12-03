@@ -571,6 +571,7 @@ class Converter {
           readUnderWrite
           ) =>
 
+        val addr_width = Math.ceil(Math.log(depth.toDouble)/Math.log(2)).toInt
         val convertReader : ((String, Int)) => ReadPort = {
           case (portName, index) => {
             addPort(name, new MemPort(index, portName, Read))
@@ -607,12 +608,12 @@ class Converter {
           (name -> new Memory(
             info.toString(),
             bitWidth(dataType).toInt,
-            depth.toInt,
+            addr_width,
             Math.pow(2, bitWidth(dataType).toDouble).toInt,
             0.toInt,
             readers.zipWithIndex map convertReader,
             writers.zipWithIndex map convertWriter,
-            "")
+            None)
           )
         , 
           (writers.zipWithIndex map connectToEnableOfWriter).toList

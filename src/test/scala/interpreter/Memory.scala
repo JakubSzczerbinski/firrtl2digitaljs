@@ -25,7 +25,7 @@ class MemorySpec extends AnyFlatSpec with Matchers {
 
     "Memory" should "return correct values for a range of inputs" in {
         val s = Driver.emit(() => new SimpleMemory)
-        val tester = new InterpretiveTester(s);
+        val tester = new DigitalJsTester(s);
 
         tester.poke("io_w", 1)
         for {

@@ -453,7 +453,7 @@ case class Memory(
   offset: Int,
   rdports: Seq[ReadPort],
   wrports: Seq[WritePort], 
-  memdata: String
+  memdata: Option[Seq[String]]
 ) extends Device {
   override def toJson(): String = s"""
   {
@@ -464,8 +464,11 @@ case class Memory(
     "words": $words,
     "offset": $offset,
     "rdports": ${JsonHelpers.serialize_list(rdports)},
-    "wrports": ${JsonHelpers.serialize_list(wrports)},
-    "memdata": "$memdata"
+    "wrports": ${JsonHelpers.serialize_list(wrports)}
+    ${memdata match {
+      case Some(data) => ", memdata: " + JsonHelpers.serialize_str_list(data)
+      case None => ""
+    }}
   }"""
 }
 
@@ -488,6 +491,8 @@ class Connector(val from: Plug, val to: Plug) extends JsonSerializable {
 }
 
 object JsonHelpers {
+  def serialize_str_list(seq: Seq[String]): String =
+    "[" + (seq map ('"' + _ + '"') mkString ",") + "]"
   def serialize_list[T <: JsonSerializable](seq: Seq[T]): String =
     "[" + (seq map (_.toJson) map indent mkString ",") + (if (seq.size == 0) ""
                                                           else "\n") + "]"
