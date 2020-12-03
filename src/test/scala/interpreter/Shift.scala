@@ -31,7 +31,7 @@ class ShiftSpec extends AnyFlatSpec with Matchers {
 
     for {
       i <- 0 to 255
-      j <- 0 to 8
+      j <- 0 to 7
     } {
       tester.poke("io_a", i)
       tester.poke("io_b", j)
