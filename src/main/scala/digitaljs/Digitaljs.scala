@@ -233,7 +233,7 @@ case class Shift(tpe: ShiftType, label: String, bits_in1: Int, bits_in2: Int, bi
     "in2": $signed_in2,
     "out": $signed_out
   },
-  fillx: $fillx
+  "fillx": $fillx
 }"""
 }
 
