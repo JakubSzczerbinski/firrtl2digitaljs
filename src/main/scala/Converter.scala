@@ -253,7 +253,7 @@ class Converter {
             label, 
             bitWidth(lhs.tpe).toInt, 
             bitWidth(rhs.tpe).toInt, 
-            bitWidth(tpe).toInt, false, false))
+            bitWidth(tpe).toInt, isSigned(lhs.tpe), isSigned(rhs.tpe)))
         , new Connector(lhsPlug, new Plug(name, "in1")) ::
           new Connector(rhsPlug, new Plug(name, "in2")) ::
           lcs ++ rcs
@@ -272,7 +272,7 @@ class Converter {
             label, 
             bitWidth(lhs.tpe).toInt, 
             bitWidth(rhs.tpe).toInt, 
-            false, false))
+            isSigned(lhs.tpe), isSigned(rhs.tpe)))
         , new Connector(lhsPlug, new Plug(name, "in1")) ::
           new Connector(rhsPlug, new Plug(name, "in2")) ::
           lcs ++ rcs
@@ -330,7 +330,7 @@ class Converter {
             label, 
             bitWidth(arg.tpe).toInt,
             const.toString(2).length, 
-            bitWidth(tpe).toInt, false, false, false, true))
+            bitWidth(tpe).toInt, isSigned(arg.tpe), false, isSigned(tpe), true))
         , new Connector(plug, new Plug(name, "in1")) ::
           new Connector(new Plug(const_name, "out"), new Plug(name, "in2")) ::
           cs
