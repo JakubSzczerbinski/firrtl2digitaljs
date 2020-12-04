@@ -2,7 +2,6 @@
 package firrtl2digitaljs
 
 import chisel3._
-import firrtl_interpreter.InterpretiveTester
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.must.Matchers
 
@@ -28,7 +27,7 @@ class ExtendSpec extends AnyFlatSpec with Matchers {
 
     "ZeroExtend" should " zero return correct values for a range of inputs" in {
         val s = Driver.emit(() => new ZeroExtend)
-        val tester = new InterpretiveTester(s);
+        val tester = new DigitalJsTester(s);
 
         for {
             i <- 0 to 255
@@ -40,13 +39,20 @@ class ExtendSpec extends AnyFlatSpec with Matchers {
 
     "SignExtend" should " zero return correct values for a range of inputs" in {
         val s = Driver.emit(() => new SignExtend)
-        val tester = new InterpretiveTester(s);
+        val tester = new DigitalJsTester(s);
 
         for {
             i <- -128 to 127
         } {
             tester.poke("io_data_in", i);
-            assert(tester.peek("io_data_out") == i);
+            // FIX ME: This is a workaround. DigitalJsTester always interprets values as unsigned.
+            val unsignedVal = tester.peek("io_data_out");
+            val signedVal = 
+                if(unsignedVal >= Math.pow(2, 15).toInt)
+                    unsignedVal - Math.pow(2, 16).toInt
+                else
+                    unsignedVal
+            assert(signedVal == i);
         }
     }
 }

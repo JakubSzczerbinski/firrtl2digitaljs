@@ -543,7 +543,27 @@ class Converter {
     }
   }
 
+  def maybeExtend(sinkTpe : Type, sourceTpe : Type, sourcePlug : Plug) = {
+    val sourceWidth = bitWidth(sourceTpe);
+    val sinkWidth = bitWidth(sinkTpe);
+    sourceTpe match {
+      case UIntType(_) | SIntType(_) if sinkWidth > sourceWidth => {
+        val name = generateIntermediateName(None);
+        val dev = {
+          if(isSigned(sourceTpe))
+            new SignExtend("", sourceWidth.toInt, sinkWidth.toInt)
+          else
+            new ZeroExtend("", sourceWidth.toInt, sinkWidth.toInt)
+        }
 
+        ( ListMap((name -> dev))
+        , List(new Connector(sourcePlug, new Plug(name, "in")))
+        , new Plug(name, "out")
+        )
+      }
+      case _ => (ListMap.empty, List.empty, sourcePlug)
+    }
+  }
   def convertStatement(
       statetment: Statement
   ): (Map[String, Device], List[Connector]) = {
@@ -555,7 +575,8 @@ class Converter {
       case Connect(info, loc, expr) =>
         val sinkPlug = getPlug(loc);
         val (ds, cs, sourcePlug) = convertExpression(expr, info.toString());
-        (ds, new Connector(sourcePlug, sinkPlug) :: cs)
+        val (extendedDs, extendedCs, extendedPlug) = maybeExtend(loc.tpe, expr.tpe, sourcePlug)
+        ((ds ++ extendedDs), new Connector(extendedPlug, sinkPlug) :: (cs ++ extendedCs))
       case DefInstance(info, name, module) => (ListMap(name -> new Subcircuit(name, module)), Nil)
       case WDefInstance(info, name, module, tpe) => (ListMap(name -> new Subcircuit(name, module)), Nil)
       case DefMemory(

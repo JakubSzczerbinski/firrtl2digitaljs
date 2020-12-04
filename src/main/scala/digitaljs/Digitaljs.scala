@@ -357,7 +357,7 @@ case class ZeroExtend(label: String, extend_input : Int, extend_output : Int) ex
   "label": "$label",
   "extend": {
     "input": $extend_input,
-    "output": $extend_output,
+    "output": $extend_output
   }
 }"""
 }
@@ -369,7 +369,7 @@ case class SignExtend(label: String, extend_input : Int, extend_output : Int) ex
   "label": "$label",
   "extend": {
     "input": $extend_input,
-    "output": $extend_output,
+    "output": $extend_output
   }
 }"""
 }
