@@ -1,7 +1,3 @@
-
-
-
-
 package firrtl2digitaljs
 
 import chisel3._
@@ -15,9 +11,9 @@ object ShiftCalculator {
 
 class Shift extends Module {
   val io = IO(new Bundle {
-    val a     = Input(UInt(8.W))
-    val b     = Input(UInt(3.W))
-    val v     = Output(UInt(8.W))
+    val a = Input(UInt(8.W))
+    val b = Input(UInt(3.W))
+    val v = Output(UInt(8.W))
   })
 
   io.v := io.a << io.b;

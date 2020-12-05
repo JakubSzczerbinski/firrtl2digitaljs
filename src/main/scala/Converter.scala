@@ -80,7 +80,7 @@ class Converter {
     }
   }
 
-  def transformIO : Device => Device = { case device => 
+  def transformIO : Device => Device = { case device =>
     device match {
       case digitaljs.Input(label, net, order, bits, is_clock, signed) =>
         if (is_clock)

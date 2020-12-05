@@ -5,7 +5,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.matchers.dsl.ResultOfAllElementsOfApplication
 import scala.collection.GenTraversable
-import firrtl_interpreter.InterpretiveTester
 
 class UnarySpec extends AnyFlatSpec with Matchers {
 
@@ -28,7 +27,7 @@ class UnarySpec extends AnyFlatSpec with Matchers {
         } {
             tester.poke("io_in", i);
             assert(tester.peek("io_not") == 255 - i);
-            assert(TestUtils.asSigned(tester.peek("io_neg"), 9) == -i)
+            assert(tester.peek("io_neg") == -i)
         }
     }
 }

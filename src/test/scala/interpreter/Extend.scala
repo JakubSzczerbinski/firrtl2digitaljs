@@ -1,4 +1,3 @@
-
 package firrtl2digitaljs
 
 import chisel3._
@@ -45,10 +44,7 @@ class ExtendSpec extends AnyFlatSpec with Matchers {
             i <- -128 to 127
         } {
             tester.poke("io_data_in", i);
-            // FIX ME: This is a workaround. DigitalJsTester always interprets values as unsigned.
-            val unsignedVal = tester.peek("io_data_out");
-            val signedVal = TestUtils.asSigned(unsignedVal, 16);
-            assert(signedVal == i);
+            assert(tester.peek("io_data_out") == i);
         }
     }
 }
