@@ -19,14 +19,20 @@ case class Subcircuit(label: String, celltype: String) extends Device {
 }"""
 }
 
-case class Input(label: String, net: String, order: Int, bits: Int, is_clock: Boolean) extends Device {
+case class Input(label: String, net: String, order: Int, bits: Int, is_clock: Boolean, signed : Option[Boolean] = None) extends Device {
   override def toJson(): String = s"""
 {
   "type": "Input",
   "label": "$label",
   "net": "$net",
   "order": $order,
-  "bits": $bits
+  "bits": $bits${
+    signed match {
+      case None => ""
+      case Some(signed) => ",\n" +
+       "  \"signed\":" + signed.toString()
+    }
+  }
 }"""
 }
 
@@ -374,14 +380,20 @@ case class SignExtend(label: String, extend_input : Int, extend_output : Int) ex
 }"""
 }
 
-case class Output(label: String, net: String, order: Int, bits: Int) extends Device {
+case class Output(label: String, net: String, order: Int, bits: Int, signed : Option[Boolean] = None) extends Device {
   override def toJson(): String = s"""
 {
   "type": "Output",
   "label": "$label",
   "net": "$net",
   "order": $order,
-  "bits": $bits
+  "bits": $bits${
+    signed match {
+      case None => ""
+      case Some(signed) => ",\n" +
+        "  \"signed\":" + signed.toString()
+    }
+  }
 }"""
 }
 
@@ -466,7 +478,7 @@ case class Memory(
     "rdports": ${JsonHelpers.serialize_list(rdports)},
     "wrports": ${JsonHelpers.serialize_list(wrports)}
     ${memdata match {
-      case Some(data) => ", memdata: " + JsonHelpers.serialize_str_list(data)
+      case Some(data) => ", \"memdata\": " + JsonHelpers.serialize_str_list(data)
       case None => ""
     }}
   }"""

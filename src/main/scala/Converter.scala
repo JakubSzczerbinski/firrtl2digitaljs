@@ -82,14 +82,14 @@ class Converter {
 
   def transformIO : Device => Device = { case device => 
     device match {
-      case digitaljs.Input(label, net, order, bits, is_clock) => 
+      case digitaljs.Input(label, net, order, bits, is_clock, signed) =>
         if (is_clock)
           Clock(label)
         else if (bits == 1)
           Button(label)
         else
           NumEntry(label, bits, "hex")
-      case digitaljs.Output(label, net, order, bits) => 
+      case digitaljs.Output(label, net, order, bits, signed) =>
         if (bits == 1)
           Lamp(label)
         else
@@ -107,14 +107,25 @@ class Converter {
   def convertPort(port: Port, portNumber: Int): (String, Device) = {
     port.direction match {
       case firrtl.ir.Input =>
-        (port.name, new Input(port.info.toString(), port.name, portNumber, bitWidth(port.tpe).intValue, isClockType(port.tpe)))
+        ( port.name
+        , new Input(
+            port.info.toString(),
+            port.name, portNumber,
+            bitWidth(port.tpe).intValue,
+            isClockType(port.tpe),
+            maybeIsSigned(port.tpe)
+          )
+        )
       case firrtl.ir.Output =>
-        (port.name, new Output(
-          port.info.toString(),
-          port.name,
-          portNumber,
-          bitWidth(port.tpe).intValue
-        ))
+        ( port.name
+        , new Output(
+            port.info.toString(),
+            port.name,
+            portNumber,
+            bitWidth(port.tpe).intValue,
+            maybeIsSigned(port.tpe)
+          )
+        )
     }
   }
 
@@ -227,10 +238,13 @@ class Converter {
       case Shl | Dshl => ShiftLeft()
     }
 
-  def isSigned(tpe : Type) : Boolean = tpe match {
-    case SIntType(width) => true
-    case UIntType(width) => false
+  def maybeIsSigned(tpe: Type) : Option[Boolean] = tpe match {
+    case SIntType(width) => Some(true)
+    case UIntType(width) => Some(false)
+    case _ => None
   }
+
+  def isSigned(tpe : Type) : Boolean = maybeIsSigned(tpe).get
 
   def convertPrimitive(
     op: PrimOp,

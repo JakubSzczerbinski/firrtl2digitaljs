@@ -74,7 +74,7 @@ class DigitalJsTester(dut: String) extends Tester {
     }
   
     response("value").asString match {
-      case Some(value) if response("type") == "value" => BigInt(value, 16);
+      case Some(value) if response("type") == "value" => BigInt(value, 10);
       case _ => throw new Exception(s"Expected value response, received ${response}")
     }
   }
