@@ -353,7 +353,7 @@ class Converter {
         val (ds, cs, plug) = convertExpression(arg, label);
         val name = generateIntermediateName(default_name);
         ( ds +
-          (name -> new Unary(Negation, label, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt, false))
+          (name -> new Unary(Negation, label, bitWidth(arg.tpe).toInt, bitWidth(tpe).toInt, isSigned(arg.tpe)))
         , new Connector(plug, new Plug(name, "in")) ::
           cs
         , new Plug(name, "out")

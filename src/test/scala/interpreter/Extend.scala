@@ -47,11 +47,7 @@ class ExtendSpec extends AnyFlatSpec with Matchers {
             tester.poke("io_data_in", i);
             // FIX ME: This is a workaround. DigitalJsTester always interprets values as unsigned.
             val unsignedVal = tester.peek("io_data_out");
-            val signedVal = 
-                if(unsignedVal >= Math.pow(2, 15).toInt)
-                    unsignedVal - Math.pow(2, 16).toInt
-                else
-                    unsignedVal
+            val signedVal = TestUtils.asSigned(unsignedVal, 16);
             assert(signedVal == i);
         }
     }
