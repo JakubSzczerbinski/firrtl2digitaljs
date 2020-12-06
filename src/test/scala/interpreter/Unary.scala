@@ -19,7 +19,6 @@ class UnarySpec extends AnyFlatSpec with Matchers {
             |    io.neg <= neg(io.in) @[neg]
             |    io.not <= not(io.in) @[not]
         """.stripMargin
-        println(s);
         val tester = new DigitalJsTester(s);
 
         for {

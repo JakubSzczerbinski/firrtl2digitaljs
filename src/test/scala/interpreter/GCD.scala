@@ -73,8 +73,8 @@ class InterpreterUsageSpec extends AnyFlatSpec with Matchers {
 
       assert(tester.peek("io_z") == BigInt(GCDCalculator.computeGcd(i, j)._1))
       // uncomment the println to see a lot of output
-      println(f"GCD(${i}%3d, ${j}%3d) => ${tester.peek("io_z")}%3d in $cycles%3d cycles")
+      // println(f"GCD(${i}%3d, ${j}%3d) => ${tester.peek("io_z")}%3d in $cycles%3d cycles")
     }
-    // tester.report()
+    tester.report()
   }
 }

@@ -20,6 +20,7 @@ import scala.collection.immutable.Stream.cons
 import Chisel.Bool
 import firrtl.SourceFlow
 import firrtl.SinkFlow
+import os.stat
 
 abstract class MemPortType() {}
 
@@ -173,8 +174,6 @@ class Converter {
     (module.name, new digitaljs.Circuit(module.name, io_devices ++ devices, connectors))
   }
 
-  
-
   def getPlug(expr: Expression): Plug =
     expr match {
       case WRef(name, tpe, kind, flow) => new Plug(name, "in")
@@ -253,7 +252,7 @@ class Converter {
     tpe: Type,
     default_name: Option[String],
     label: String,
-  ): (Map[String, Device], List[Connector], Plug) = 
+  ): (Map[String, Device], List[Connector], Plug) = {
     op match {
       case Add | Sub | Mul | Div | Rem =>
         val name = generateIntermediateName(default_name);
@@ -319,6 +318,7 @@ class Converter {
         convertExpression(arg, label);
       }
       case Pad => {
+        // TODO Test this branch
         val name = generateIntermediateName(default_name);
         val arg = args(0);
         val padDevice = tpe match {
@@ -332,6 +332,7 @@ class Converter {
         )
       }
       case Shl | Shr => {
+        // TODO Test this branch
         val arg = args(0);
         val const = consts(0);
         val const_name = generateIntermediateName(None);
@@ -352,6 +353,7 @@ class Converter {
         )
       }
       case Cvt => {
+        // TODO Test this branch
         val arg = args(0);
         val (ds, cs, plug) = convertExpression(arg, label);
         val name = generateIntermediateName(default_name);
@@ -385,6 +387,7 @@ class Converter {
         )
       }
       case firrtl.PrimOps.And | firrtl.PrimOps.Or | firrtl.PrimOps.Xor => {
+        // TODO Test this branch
         val name = generateIntermediateName(default_name);
         val lhs = args(0);
         val rhs = args(1);
@@ -454,16 +457,18 @@ class Converter {
         )
       }
       case Head => {
+        // TODO Test this branch
         val name = generateIntermediateName(default_name);
         val arg = args(0);
-        val n = consts(0);
+        val width = bitWidth(arg.tpe).toInt;
+        val n = consts(0).toInt;
         val (ds, cs, plug) = convertExpression(arg, label);
         ( ds
         + (name -> new BusSlice(
             label,
-            0,
-            n.toInt,
-            bitWidth(arg.tpe).toInt
+            width - n,
+            n,
+            width
           ))
         , new Connector(plug, new Plug(name, "in")) ::
           cs
@@ -489,6 +494,7 @@ class Converter {
       }
       case _ => println("Not handled ", op.toString()); (ListMap(), Nil, new Plug("XD", "out")); // TODO Cleanup
     }
+  }
 
   def makeConstantString(
     value : BigInt,
@@ -509,8 +515,6 @@ class Converter {
     val intermediateName = generateIntermediateName(None);
     convertExpression(expr, intermediateName, label);
   }
-
-  def x(y : firrtl.Kind) : firrtl.Kind = y
 
   def convertExpression(
       expr: Expression,
@@ -591,6 +595,7 @@ class Converter {
         val (ds, cs, sourcePlug) = convertExpression(expr, info.toString());
         val (extendedDs, extendedCs, extendedPlug) = maybeExtend(loc.tpe, expr.tpe, sourcePlug)
         ((ds ++ extendedDs), new Connector(extendedPlug, sinkPlug) :: (cs ++ extendedCs))
+      // TODO Test this branch
       case DefInstance(info, name, module) => (ListMap(name -> new Subcircuit(name, module)), Nil)
       case WDefInstance(info, name, module, tpe) => (ListMap(name -> new Subcircuit(name, module)), Nil)
       case DefMemory(
@@ -678,10 +683,15 @@ class Converter {
           (new Connector(clkPlug, new Plug(name, "clk"))) :: cs
         )
       }
+      // TODO Test this branch
       case DefWire(info, name, tpe) => (ListMap(), Nil)
+      // TODO Test this branch
       case IsInvalid(info, expr)    => (ListMap(), Nil)
+      // TODO Test this branch
       case Stop(info, ret, clk, en) => (ListMap(), Nil) // TODO Find out why its ignored
+      // TODO Test this branch
       case EmptyStmt                => (ListMap(), Nil)
+      // TODO Test this branch
       case Print(info, string, args, clk, en) =>
         println("Ignoring print statement"); (ListMap(), Nil)
       case _ => println("Illegal statement", statetment); (ListMap(), Nil)
