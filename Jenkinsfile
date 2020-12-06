@@ -20,11 +20,7 @@ pipeline {
         stage('coverage') {
             steps {
                 sh 'sbt jacoco'
-                jacoco
-                    classPattern: 'target/scala*/classes',
-                    execPattern: 'target/scala*/jacoco/data/*.exec',
-                    sourceInclusionPattern: '**/*.scala',
-                    sourcePattern: 'src/main/scala'
+                jacoco classPattern: 'target/scala*/classes', execPattern: 'target/scala*/jacoco/data/*.exec', sourceInclusionPattern: '**/*.scala', sourcePattern: 'src/main/scala'
             }
         }
         stage('assembly') {
@@ -38,9 +34,7 @@ pipeline {
             cleanWs()
         }
         success {
-            archiveArtifacts
-                artifacts: 'target/scala*/firrtl2digitaljs-assembly*.jar',
-                followSymlinks: false
+            archiveArtifacts artifacts: 'target/scala*/firrtl2digitaljs-assembly*.jar', followSymlinks: false
         }
     }
 }
