@@ -28,11 +28,13 @@ pipeline {
                 sh 'sbt assembly'
             }
         }
+        stage('archiveFiles') {
+            steps {
+                archiveArtifacts artifacts: 'target/scala*/firrtl2digitaljs-assembly*.jar', followSymlinks: false
+            }
+        }
     }
     post { 
-        success {
-            archiveArtifacts artifacts: 'target/scala*/firrtl2digitaljs-assembly*.jar', followSymlinks: false
-        }
         always { 
             cleanWs()
         }
