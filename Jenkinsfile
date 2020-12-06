@@ -14,6 +14,17 @@ pipeline {
         stage('test') {
             steps {
                 sh 'sbt test'
+                junit 'target/test-reports/*.xml'
+            }
+        }
+        stage('coverage') {
+            steps {
+                sh 'sbt jacoco'
+                jacoco
+                    classPattern: 'target/scala*/classes',
+                    execPattern: 'target/scala*/jacoco/data/*.exec',
+                    sourceInclusionPattern: '**/*.scala',
+                    sourcePattern: 'src/main/scala'
             }
         }
         stage('assembly') {
@@ -25,6 +36,11 @@ pipeline {
     post { 
         always { 
             cleanWs()
+        }
+        success {
+            archiveArtifacts
+                artifacts: 'target/scala*/firrtl2digitaljs-assembly*.jar',
+                followSymlinks: false
         }
     }
 }
