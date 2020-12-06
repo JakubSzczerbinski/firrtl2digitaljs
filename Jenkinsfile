@@ -30,11 +30,11 @@ pipeline {
         }
     }
     post { 
-        always { 
-            cleanWs()
-        }
         success {
             archiveArtifacts artifacts: 'target/scala*/firrtl2digitaljs-assembly*.jar', followSymlinks: false
+        }
+        always { 
+            cleanWs()
         }
     }
 }
