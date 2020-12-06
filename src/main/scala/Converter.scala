@@ -335,17 +335,18 @@ class Converter {
         // TODO Test this branch
         val arg = args(0);
         val const = consts(0);
+        val const_width = const.toString(2).length;
         val const_name = generateIntermediateName(None);
         val name = generateIntermediateName(default_name);
         val (ds, cs, plug) = convertExpression(arg, label);
         ( ds +
-          (const_name -> new Constant(label, makeConstantString(const, bitWidth(tpe)))) +
+          (const_name -> new Constant(label, makeConstantString(const, const_width))) +
           (name -> new Shift(
             shiftTypeOfPrimOp(op),
             label, 
             bitWidth(arg.tpe).toInt,
-            const.toString(2).length, 
-            bitWidth(tpe).toInt, isSigned(arg.tpe), false, isSigned(tpe), true))
+            const_width,
+            bitWidth(tpe).toInt, isSigned(arg.tpe), false, isSigned(tpe), false))
         , new Connector(plug, new Plug(name, "in1")) ::
           new Connector(new Plug(const_name, "out"), new Plug(name, "in2")) ::
           cs
@@ -387,7 +388,6 @@ class Converter {
         )
       }
       case firrtl.PrimOps.And | firrtl.PrimOps.Or | firrtl.PrimOps.Xor => {
-        // TODO Test this branch
         val name = generateIntermediateName(default_name);
         val lhs = args(0);
         val rhs = args(1);
@@ -457,7 +457,6 @@ class Converter {
         )
       }
       case Head => {
-        // TODO Test this branch
         val name = generateIntermediateName(default_name);
         val arg = args(0);
         val width = bitWidth(arg.tpe).toInt;
