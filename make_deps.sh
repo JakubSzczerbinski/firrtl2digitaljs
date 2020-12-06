@@ -2,6 +2,8 @@
 
 set -e
 
+rm -rf external
+
 # Make 'external' directory
 mkdir external
 cd external
