@@ -38,9 +38,7 @@ class DigitalJsTester(dut: String) extends Tester {
 
   def convertCircuit(dut : String) : String = {
     val circuit = firrtl.Parser.parse(dut);
-    val lowfirrtlC = new LowFirrtlCompiler()
-    val low_firrtl = lowfirrtlC.compileAndEmit(CircuitState(circuit, ChirrtlForm)).circuit
-    (new firrtl2digitaljs.Converter).convertWithOpts(low_firrtl, false).toJson
+    Main.convert(circuit, false)
   }
 
   def init() = {

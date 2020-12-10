@@ -130,35 +130,6 @@ class Converter {
     }
   }
 
-  def correctInputPlugsOfOutputs(ports : Seq[Port], connectors_ : List[Connector]) = {
-    var connectors = connectors_
-    var changed = true
-    while (changed) {
-      changed = false
-      val inputPlugsOfOutputPorts = ports flatMap (port => {
-        port.direction match {
-          case firrtl.ir.Input => Seq.empty
-          case firrtl.ir.Output => 
-            connectors
-              .find(conn => conn.to.id == port.name)
-              .map(conn => (port.name, conn.from))
-              .toSeq
-        }
-      })
-      connectors = connectors map (conn => {
-        val maybeFrom = inputPlugsOfOutputPorts find { case (outputName, plug) => conn.from.id == outputName } map (_._2)
-        maybeFrom match {
-          case None => conn
-          case Some(from) => {
-            changed = true
-            new Connector(from, conn.to)
-          }
-        }
-      })
-    }
-    connectors
-  }
-
   def convertModule(module: DefModule): (String, digitaljs.Circuit) = {
     val io_devices = module.ports.zipWithIndex.map {
       case (p, i) => convertPort(p, i)
@@ -170,7 +141,6 @@ class Converter {
       devices = d ++ devices;
       connectors = c ++ connectors;
     })
-    connectors = correctInputPlugsOfOutputs(module.ports, connectors)
     (module.name, new digitaljs.Circuit(module.name, io_devices ++ devices, connectors))
   }
 
@@ -391,8 +361,8 @@ class Converter {
         val name = generateIntermediateName(default_name);
         val lhs = args(0);
         val rhs = args(1);
-        val (lds, lcs, lhsPlug) = convertExpression(lhs, label);
-        val (rds, rcs, rhsPlug) = convertExpression(rhs, label);
+        val (lds, lcs, lhsPlug) = convertExpression(lhs, label, tpe);
+        val (rds, rcs, rhsPlug) = convertExpression(rhs, label, tpe);
         ( (lds ++ rds)
         + (name -> new BinaryGate(
             binGateTypeOfPrimOp(op),
@@ -516,6 +486,27 @@ class Converter {
   }
 
   def convertExpression(
+    expr : Expression,
+    toplevel : String,
+    label : String,
+    tpe : Type,
+  ) : (Map[String, Device], List[Connector], Plug) = {
+    val (ds, cs, plug) = convertExpression(expr, toplevel, label);
+    val (eds, ecs, eplug) = maybeExtend(tpe, expr.tpe, plug);
+    (eds ++ ds, ecs ++ cs, eplug)
+  }
+
+  def convertExpression(
+    expr : Expression,
+    label : String,
+    tpe : Type,
+  ) : (Map[String, Device], List[Connector], Plug) = {
+    val (ds, cs, plug) = convertExpression(expr, label);
+    val (eds, ecs, eplug) = maybeExtend(tpe, expr.tpe, plug);
+    (eds ++ ds, ecs ++ cs, eplug)
+  }
+
+  def convertExpression(
       expr: Expression,
       toplevel: String,
       label: String,
@@ -532,8 +523,8 @@ class Converter {
       case WSubField(_, name, tpe, flow) => (ListMap(), Nil, getPlug(expr))
       case firrtl.ir.Mux(cond, tval, fval, tpe) => {
         val (cds, ccs, condPlug) = convertExpression(cond, label);
-        val (tds, tcs, tvalPlug) = convertExpression(tval, label);
-        val (fds, fcs, fvalPlug) = convertExpression(fval, label);
+        val (tds, tcs, tvalPlug) = convertExpression(tval, label, tpe);
+        val (fds, fcs, fvalPlug) = convertExpression(fval, label, tpe);
         ( (cds ++ tds ++ fds) + (toplevel -> new digitaljs.Mux(label, bitWidth(tpe).toInt, 1))
         , new Connector(fvalPlug, new Plug(toplevel, "in0")) ::
           new Connector(tvalPlug, new Plug(toplevel, "in1")) ::
@@ -595,7 +586,6 @@ class Converter {
         val (extendedDs, extendedCs, extendedPlug) = maybeExtend(loc.tpe, expr.tpe, sourcePlug)
         ((ds ++ extendedDs), new Connector(extendedPlug, sinkPlug) :: (cs ++ extendedCs))
       // TODO Test this branch
-      case DefInstance(info, name, module) => (ListMap(name -> new Subcircuit(name, module)), Nil)
       case WDefInstance(info, name, module, tpe) => (ListMap(name -> new Subcircuit(name, module)), Nil)
       case DefMemory(
           info,
@@ -682,17 +672,6 @@ class Converter {
           (new Connector(clkPlug, new Plug(name, "clk"))) :: cs
         )
       }
-      // TODO Test this branch
-      case DefWire(info, name, tpe) => (ListMap(), Nil)
-      // TODO Test this branch
-      case IsInvalid(info, expr)    => (ListMap(), Nil)
-      // TODO Test this branch
-      case Stop(info, ret, clk, en) => (ListMap(), Nil) // TODO Find out why its ignored
-      // TODO Test this branch
-      case EmptyStmt                => (ListMap(), Nil)
-      // TODO Test this branch
-      case Print(info, string, args, clk, en) =>
-        println("Ignoring print statement"); (ListMap(), Nil)
       case _ => println("Illegal statement", statetment); (ListMap(), Nil)
     }
   }

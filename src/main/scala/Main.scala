@@ -10,6 +10,7 @@ import scala.collection.immutable.Stream.Cons
 import java.io.PrintStream
 import java.io.ByteArrayOutputStream
 import firrtl2digitaljs.digitaljs.DigitalJs
+import firrtl.options.Dependency
 
 object Main {
 
@@ -24,7 +25,7 @@ object Main {
         // Redirects firrtl compiler log to firrtl.log
         setOutput("firrtl.log");
         val firrtl = parseFile(args.head, UseInfo);
-        val djs = convert(firrtl);
+        val djs = convert(firrtl, true);
         println(djs)
       }
       catch {
@@ -38,15 +39,18 @@ object Main {
       println(s"Ignoring files: ${args.tail mkString ", "}");
   }
 
-  def convert(circuit : firrtl.ir.Circuit) : String = {
+  def convert(circuit : firrtl.ir.Circuit, transform_io: Boolean) : String = {
     val low_firrtl = lowerFirrtl(circuit);
-    println(low_firrtl.serialize);
-    val digitaljs = (new Converter).convert(low_firrtl);
+    val digitaljs = (new Converter).convertWithOpts(low_firrtl, transform_io);
     digitaljs.toJson();
   }
 
   def lowerFirrtl(circuit : firrtl.ir.Circuit) : firrtl.ir.Circuit = {
-    val lowfirrtlC = new LowFirrtlCompiler()
-    lowfirrtlC.compileAndEmit(CircuitState(circuit, ChirrtlForm)).circuit
+    val compiler = new firrtl.stage.transforms.Compiler(
+        targets = Dependency[RemoveSinksUsedAsSources] +: firrtl.stage.Forms.LowForm
+      )
+    val lowered = compiler.execute(CircuitState(circuit, Seq.empty))
+    System.err.println(lowered.circuit.serialize)
+    lowered.circuit
   }
 }
