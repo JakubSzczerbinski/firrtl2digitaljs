@@ -30,7 +30,6 @@ class ShiftSpec extends AnyFlatSpec with Matchers {
 
   "Shift" should "return correct values for a range of inputs" in {
     val s = Driver.emit(() => new Shift);
-    println(s);
     val tester = new DigitalJsTester(s);
 
     for {

@@ -39,7 +39,6 @@ class OutputAsSourceSpec extends AnyFreeSpec with Matchers {
 
     tester.poke("in1", 1)
 
-    println(s"out2 is ${tester.peek("out2")}")
     tester.expect("out1", 1)
     tester.expect("out2", 2)
   }

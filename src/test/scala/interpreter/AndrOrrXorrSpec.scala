@@ -75,9 +75,6 @@ class AndrOrrXorrSpec extends AnyFreeSpec with Matchers {
       t.expect("io_out_andr", scalaAndReduce(i0 + (i1 << 1) + (i2 << 2) + (i3 << 3), 4))
       t.expect("io_out_orr", scalaOrReduce(i0 + (i1 << 1) + (i2 << 2) + (i3 << 3), 4))
       t.expect("io_out_xorr", scalaXorReduce(i0 + (i1 << 1) + (i2 << 2) + (i3 << 3), 4))
-
-     println(s"got $i0$i1$i2$i3 " + t.peek("io_out_andr") + " " +
-             t.peek("io_out_orr") + " " + t.peek("io_out_xorr"))
     }
 
     t.report()

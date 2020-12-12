@@ -51,10 +51,8 @@ class RegisterCycleTest extends AnyFreeSpec with Matchers {
 
 
       for(i <- 0 to 10) {
-        println(s"experiment $i")
         scala.util.Random.setSeed(i.toLong)
         val tester = new DigitalJsTester(input)
-//        tester.setVerbose(true)
 
         tester.poke("reset", 1)
         tester.step(1)

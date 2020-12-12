@@ -21,7 +21,6 @@ class RemoveSinksUsedAsSources() extends Pass {
     }
 
     override def run(c: Circuit): Circuit = {
-        println(name)
         c mapModule swapSinksforSources_M
     }
 
@@ -64,7 +63,6 @@ class RemoveSinksUsedAsSources() extends Pass {
     def findSourcesOfSinks_S(statement : Statement) : Unit = 
         statement match {
             case Connect(info, loc, expr) => 
-                println(loc)
                 loc match {
                     case WRef(name, _, _, _) if outputPorts contains name =>
                         sourcesOfSinks.put(flipFlow_E(loc), expr);
@@ -75,10 +73,10 @@ class RemoveSinksUsedAsSources() extends Pass {
             case stmt => stmt foreachStmt findSourcesOfSinks_S
         }
 
-    def findSourcesOfSinks_M(m : DefModule) : SinksToSources = {
+    def findSourcesOfSinks_M(m : DefModule) : Unit = {
         sourcesOfSinks = mutable.Map();
         m foreachStmt findSourcesOfSinks_S
-        sourcesOfSinks map {
+        sourcesOfSinks = sourcesOfSinks map {
             case (sink, source) => {
                 var src = source;
                 while (sourcesOfSinks contains src) {
@@ -112,10 +110,7 @@ class RemoveSinksUsedAsSources() extends Pass {
     def swapSinksforSources_M (m : DefModule) : DefModule = {
         m foreachPort findOutputPorts;
         findInstances_M(m);
-        println(instances)
-        println(outputPorts)
         findSourcesOfSinks_M(m);
-        println(sourcesOfSinks);
         m mapStmt swapSinksforSources_S
     }
 

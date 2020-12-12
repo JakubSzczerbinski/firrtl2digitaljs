@@ -17,7 +17,6 @@ import firrtl.WDefInstance
 import firrtl.getWidth
 import scala.collection.immutable.ListMap
 import scala.collection.immutable.Stream.cons
-import Chisel.Bool
 import firrtl.SourceFlow
 import firrtl.SinkFlow
 import os.stat
@@ -672,7 +671,10 @@ class Converter {
           (new Connector(clkPlug, new Plug(name, "clk"))) :: cs
         )
       }
-      case _ => println("Illegal statement", statetment); (ListMap(), Nil)
+      case IsInvalid(info, expr) => {
+        (Map.empty, List.empty)
+      }
+      case _ => println("Illegal statement: " + statetment.serialize); (ListMap(), Nil)
     }
   }
 }

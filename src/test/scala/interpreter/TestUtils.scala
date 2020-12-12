@@ -16,8 +16,7 @@ object TestUtils {
     }
 
     def parse(firrtl : String) : Circuit = {
-        val circuit = Parser.parse(firrtl)
-        Main.lowerFirrtl(circuit)
+        Parser.parse(firrtl)
     }
 }
 

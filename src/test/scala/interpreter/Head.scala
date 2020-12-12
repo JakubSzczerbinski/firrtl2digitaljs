@@ -17,7 +17,6 @@ class HeadSpec extends AnyFreeSpec with Matchers {
       """.stripMargin
     val tester = new DigitalJsTester(input);
     for {i <- 0 to 255} {
-
       tester.poke("io_In", i);
       assert(tester.peek("io_Out") == i / 16)
     }

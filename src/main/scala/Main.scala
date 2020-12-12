@@ -50,7 +50,6 @@ object Main {
         targets = Dependency[RemoveSinksUsedAsSources] +: firrtl.stage.Forms.LowForm
       )
     val lowered = compiler.execute(CircuitState(circuit, Seq.empty))
-    System.err.println(lowered.circuit.serialize)
     lowered.circuit
   }
 }
