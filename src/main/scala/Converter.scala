@@ -20,48 +20,51 @@ import scala.collection.immutable.Stream.cons
 import firrtl.SourceFlow
 import firrtl.SinkFlow
 import os.stat
-
-abstract class MemPortType() {}
-
-case object Read extends MemPortType {}
-case object Write extends MemPortType {}
-case object ReadWrite extends MemPortType {}
-
-object MemPort {
-  def andGateName(mem_name : String, index : Int) : String =
-    mem_name + "_wr_and" + index
-}
-
-class MemPort(val index : Int, val name : String, val tpe : MemPortType) {
-  def makePlug(device_name : String, endpoint : String) : Plug =
-    (tpe match {
-      case Read => endpoint match {
-        case "data" => new Plug(device_name, "rd" + index + "data")
-        case "addr" => new Plug(device_name, "rd" + index + "addr")
-        case "en" => new Plug(device_name, "rd" + index + "en")
-        case "clk" => new Plug(device_name, "rd" + index + "clk")
-      }
-      case Write => endpoint match {
-        case "data" => new Plug(device_name, "wr" + index + "data")
-        case "mask" => new Plug(MemPort.andGateName(device_name, index), "in1")
-        case "addr" => new Plug(device_name, "wr" + index + "addr")
-        case "en" => new Plug(MemPort.andGateName(device_name, index), "in2")
-        case "clk" => new Plug(device_name, "wr" + index + "clk")
-      }
-    })
-}
+import firrtl.Emitter
+import os.write
 
 class Converter {
   var genId : BigInt = BigInt.int2bigInt(0);
-  var memory_ports : ListMap[String, List[MemPort]] = ListMap.empty;
+  var memory_modules : Map[String, Memory] = Map.empty;
 
-  def addPort(name : String, mem_port : MemPort) = {
-    val portList = memory_ports get name getOrElse Nil
-    memory_ports = memory_ports + (name -> (mem_port :: portList))
-  }
+  def findMemoryModules (circuit : firrtl.ir.Circuit) : Map[String, Memory] =
+    (circuit.modules flatMap {
+      case ExtModule(info, name, ports, defname, params) if defname == "DIGITALJS_MEMORY" => {
+        var addrWidth = -1;
+        var size = -1;
+        var readers = -1;
+        var writers = -1;
+        params foreach {
+          case IntParam(name, value) if name == "ADDR_WIDTH" => addrWidth = value.toInt;
+          case IntParam(name, value) if name == "SIZE" => size = value.toInt;
+          case IntParam(name, value) if name == "READERS" => readers = value.toInt;
+          case IntParam(name, value) if name == "WRITERS" => writers = value.toInt;
+        }
+        if (addrWidth == -1 || size == -1 || readers == -1 || writers == -1) {
+          System.err.println("Invalid memory params")
+        }
+        val rdports : Seq[ReadPort] = 0 to readers map (i => new ReadPort(true, true, false))
+        val wrports : Seq[WritePort] = 0 to writers map (i => new WritePort(true, true))
+        val memory = new Memory(
+          info.toString, 
+          size,
+          addrWidth,
+          Math.pow(2, size).toInt,
+          0,
+          rdports,
+          wrports,
+          None
+        )
+
+        System.err.println("Added memory", name)
+        Seq((name -> memory))
+      }
+      case _ => Seq.empty
+    }).toMap
 
   def convert(circuit : firrtl.ir.Circuit) : DigitalJs = convertWithOpts(circuit, true)
   def convertWithOpts(circuit : firrtl.ir.Circuit, io_transformed : Boolean) : DigitalJs = {
+    memory_modules = findMemoryModules(circuit)
     val circuits = circuit.modules map convertModule toMap 
     val maybeToplevel = circuits find {case (name, _) => name == circuit.main }
     maybeToplevel match {
@@ -80,6 +83,7 @@ class Converter {
     }
   }
 
+  // TO DO: Remove - becomes obsolete with new digitaljs changes 
   def transformIO : Device => Device = { case device =>
     device match {
       case digitaljs.Input(label, net, order, bits, is_clock, signed) =>
@@ -129,10 +133,13 @@ class Converter {
     }
   }
 
-  def convertModule(module: DefModule): (String, digitaljs.Circuit) = {
-    val io_devices = module.ports.zipWithIndex.map {
+  def convertPorts(ports : Seq[Port]) : Map[String, Device] =
+    ports.zipWithIndex.map {
       case (p, i) => convertPort(p, i)
-    }.toMap;
+    }.toMap
+
+  def convertModule(module: DefModule): (String, digitaljs.Circuit) = {
+    val io_devs = convertPorts(module.ports)
     var devices: Map[String, Device] = ListMap.empty;
     var connectors: List[Connector] = Nil;
     module.foreachStmt((statement) => {
@@ -140,7 +147,7 @@ class Converter {
       devices = d ++ devices;
       connectors = c ++ connectors;
     })
-    (module.name, new digitaljs.Circuit(module.name, io_devices ++ devices, connectors))
+    (module.name, new digitaljs.Circuit(module.name, io_devs ++ devices, connectors))
   }
 
   def getPlug(expr: Expression): Plug =
@@ -148,14 +155,6 @@ class Converter {
       case WRef(name, tpe, kind, flow) => new Plug(name, "in")
       case WSubField(WRef(name, tp1, kind, f1), port, tp0, f0) =>
         new Plug(name, port)
-      case WSubField(WSubField(WRef(name, tp2, kind, f2), mem_port, tp1, f1), field, tp0, f0) =>
-        memory_ports
-          .get(name)
-          .flatMap((_ find (_.name == mem_port)))
-          .map(port => port.makePlug(name, field))
-          .get
-      case Reference(name, tpe) => 
-        new Plug(name, "in")
       case _ => ???
     }
 
@@ -532,16 +531,10 @@ class Converter {
         , new Plug(toplevel, "out")
         )
       }
-      case Reference(name, tpe) => {
-        (ListMap(), Nil, new Plug(name, "out"))
-      }
       case SIntLiteral(value, width) =>
         ( ListMap(toplevel -> new Constant(label, makeConstantString(value, bitWidth(expr.tpe))))
         , Nil
         , new Plug(toplevel, "out") )
-      case SubAccess(expr, index, tpe) => ??? // Propably implementation not needed (not availble in low form)
-      case SubField(expr, name, tpe) => ??? // Same /\
-      case SubIndex(expr, value, tpe) => ??? // Same /\
       case UIntLiteral(value, width) => 
         ( ListMap(toplevel -> new Constant(label, makeConstantString(value, bitWidth(expr.tpe))))
         , Nil
@@ -576,76 +569,20 @@ class Converter {
   ): (Map[String, Device], List[Connector]) = {
     statetment match {
       case Block(stmts) =>
-        return stmts
+        stmts
           .map(convertStatement)
           .fold((ListMap[String, Device](), Nil))((a, b) => (a._1 ++ b._1, a._2 ++ b._2))
       case Connect(info, loc, expr) =>
         val sinkPlug = getPlug(loc);
-        val (ds, cs, sourcePlug) = convertExpression(expr, info.toString());
+        val (ds, cs, sourcePlug) = convertExpression(expr, info.toString);
         val (extendedDs, extendedCs, extendedPlug) = maybeExtend(loc.tpe, expr.tpe, sourcePlug)
         ((ds ++ extendedDs), new Connector(extendedPlug, sinkPlug) :: (cs ++ extendedCs))
-      // TODO Test this branch
-      case WDefInstance(info, name, module, tpe) => (ListMap(name -> new Subcircuit(name, module)), Nil)
-      case DefMemory(
-          info,
-          name,
-          dataType,
-          depth,
-          writeLatency,
-          readLatency,
-          readers,
-          writers,
-          readwriters,
-          readUnderWrite
-          ) =>
-
-        val addr_width = Math.ceil(Math.log(depth.toDouble)/Math.log(2)).toInt
-        val convertReader : ((String, Int)) => ReadPort = {
-          case (portName, index) => {
-            addPort(name, new MemPort(index, portName, Read))
-            new ReadPort(true, true, false)
-          }
-        }
-
-        val convertWriter : ((String, Int)) => WritePort = {
-          case (portName, index) => {
-            addPort(name, new MemPort(index, portName, Write))
-            new WritePort(true, true)
-          }
-        }
-
-        val andGateOfWriter : ((String, Int)) => (String, Device) = {
-          case (portName, index) => 
-            (name + "_wr_and" + index -> new BinaryGate(
-              digitaljs.And,
-              "",
-              1
-            ))
-        }
-
-        val connectToEnableOfWriter : ((String, Int)) => Connector = {
-          case (portName, index) =>
-            new Connector(
-              new Plug(MemPort.andGateName(name, index), "out"),
-              new Plug(name, "wr" + index + "en")
-            )
-        }
-
-        ( 
-          (writers.zipWithIndex map andGateOfWriter).toMap +
-          (name -> new Memory(
-            info.toString(),
-            bitWidth(dataType).toInt,
-            addr_width,
-            Math.pow(2, bitWidth(dataType).toDouble).toInt,
-            0.toInt,
-            readers.zipWithIndex map convertReader,
-            writers.zipWithIndex map convertWriter,
-            None)
-          )
-        , 
-          (writers.zipWithIndex map connectToEnableOfWriter).toList
-        )
+      case WDefInstance(info, name, module, tpe) => {
+        if (memory_modules contains module)
+          (ListMap(name -> memory_modules(module)), Nil)
+        else 
+          (ListMap(name -> new Subcircuit(name, module)), Nil)
+      }
       case DefNode(info, name, value) => {
         val (ds, cs, plug) = convertExpression(value, name, info.toString());
         if (plug.id == name)
@@ -657,7 +594,6 @@ class Converter {
           , new Connector(plug, new Plug(name, "in")) ::
             cs
           )
-
         }
       }
       case DefRegister(info, name, tpe, clock, reset, init) => {

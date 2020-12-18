@@ -47,7 +47,7 @@ object Main {
 
   def lowerFirrtl(circuit : firrtl.ir.Circuit) : firrtl.ir.Circuit = {
     val compiler = new firrtl.stage.transforms.Compiler(
-        targets = Dependency[RemoveSinksUsedAsSources] +: firrtl.stage.Forms.LowForm
+        targets = Seq(Dependency[RemoveSinksUsedAsSources], Dependency[DigitaljsMemoryAdapterInsertion]) ++ firrtl.stage.Forms.LowForm
       )
     val lowered = compiler.execute(CircuitState(circuit, Seq.empty))
     lowered.circuit
