@@ -24,25 +24,17 @@ import firrtl.Emitter
 import os.write
 
 class Converter {
+  import ConveterUtils._
   var genId : BigInt = BigInt.int2bigInt(0);
   var memory_modules : Map[String, Memory] = Map.empty;
 
   def findMemoryModules (circuit : firrtl.ir.Circuit) : Map[String, Memory] =
     (circuit.modules flatMap {
       case ExtModule(info, name, ports, defname, params) if defname == "DIGITALJS_MEMORY" => {
-        var addrWidth = -1;
-        var size = -1;
-        var readers = -1;
-        var writers = -1;
-        params foreach {
-          case IntParam(name, value) if name == "ADDR_WIDTH" => addrWidth = value.toInt;
-          case IntParam(name, value) if name == "SIZE" => size = value.toInt;
-          case IntParam(name, value) if name == "READERS" => readers = value.toInt;
-          case IntParam(name, value) if name == "WRITERS" => writers = value.toInt;
-        }
-        if (addrWidth == -1 || size == -1 || readers == -1 || writers == -1) {
-          System.err.println("Invalid memory params")
-        }
+        var addrWidth = getIntParam(params, "ADDR_WIDTH").toInt
+        var size = getIntParam(params, "SIZE").toInt
+        var readers = getIntParam(params, "READERS").toInt
+        var writers = getIntParam(params, "WRITERS").toInt
         val rdports : Seq[ReadPort] = 0 to readers map (i => new ReadPort(true, true, false))
         val wrports : Seq[WritePort] = 0 to writers map (i => new WritePort(true, true))
         val memory = new Memory(
@@ -55,37 +47,32 @@ class Converter {
           wrports,
           None
         )
-
-        System.err.println("Added memory", name)
         Seq((name -> memory))
       }
       case _ => Seq.empty
     }).toMap
 
-  def convert(circuit : firrtl.ir.Circuit) : DigitalJs = convertWithOpts(circuit, true)
-  def convertWithOpts(circuit : firrtl.ir.Circuit, io_transformed : Boolean) : DigitalJs = {
-    memory_modules = findMemoryModules(circuit)
-    val circuits = circuit.modules map convertModule toMap 
-    val maybeToplevel = circuits find {case (name, _) => name == circuit.main }
-    maybeToplevel match {
+  def digitalJsOfCircuits(circuits : Map[String, digitaljs.Circuit], main_circuit : String) =
+    maybeGetCircuit(circuits, main_circuit) match {
       case Some((_, toplevel)) => 
         new DigitalJs(
-          if (io_transformed)
-            toplevel.devices mapValues transformIO
-          else
-            toplevel.devices,
+          toplevel.devices,
           toplevel.connectors, 
-          circuits filter { case (name, _) => name != circuit.main })
+          circuits filter { case (name, _) => name != main_circuit })
       case None => {
         println("No toplevel module")
         new DigitalJs(Map.empty, Nil, circuits)
       }
     }
+  
+  def convert(circuit : firrtl.ir.Circuit) : DigitalJs = {
+    memory_modules = findMemoryModules(circuit)
+    val circuits = (circuit.modules map convertModule).toMap;
+    digitalJsOfCircuits(circuits, circuit.main)
   }
 
-  // TO DO: Remove - becomes obsolete with new digitaljs changes 
-  def transformIO : Device => Device = { case device =>
-    device match {
+  def transformToplevelIO(djs : DigitalJs) : DigitalJs = {
+    val devices = djs.devices mapValues {
       case digitaljs.Input(label, net, order, bits, is_clock, signed) =>
         if (is_clock)
           Clock(label)
@@ -98,15 +85,18 @@ class Converter {
           Lamp(label)
         else
           NumDisplay(label, bits, "hex")
-      case _ => device
+      case device => device
     }
+    new DigitalJs(devices, djs.connectors, djs.subcircuits);
   }
 
-  def isClockType(tpe : Type) =
-    tpe match {
-      case ClockType => true
-      case _ => false
-    }
+  def convertWithOpts(circuit : firrtl.ir.Circuit, transformIO : Boolean) : DigitalJs = {
+    val djs = convert(circuit);
+    if (transformIO)
+      transformToplevelIO(djs)
+    else
+      djs
+  }
 
   def convertPort(port: Port, portNumber: Int): (String, Device) = {
     port.direction match {
@@ -157,7 +147,8 @@ class Converter {
         new Plug(name, port)
       case _ => ???
     }
-
+  
+  // TO DO: Swap for firrtl name generation
   def generateIntermediateName(name: Option[String]): String = {
     if (name.isDefined) {
       return name.get;
@@ -165,53 +156,6 @@ class Converter {
     genId += 1;
     return "__INTERMEDIATE__" + genId.toString(16);
   }
-
-  def reduceGateOfPrimOp(op: PrimOp) : ReduceGateType =
-    op match {
-      case Andr => AndReduce
-      case Orr => OrReduce
-      case Xorr => XorReduce
-    }
-
-  def binGateTypeOfPrimOp(op: PrimOp) : BinaryGateType =
-    op match {
-      case firrtl.PrimOps.And => digitaljs.And
-      case firrtl.PrimOps.Or => digitaljs.Or
-      case firrtl.PrimOps.Xor => digitaljs.Xor
-    }    
-
-  def binTypeOfPrimOp(op: PrimOp) : BinType =
-    op match {
-      case Add => Addition()
-      case Sub => Subtraction()
-      case Mul => Multiplication()
-      case Div => Division()
-      case Rem => Modulo()
-    }
-
-  def compTypeOfPrimOp(op: PrimOp) : CompType =
-    op match {
-      case Leq => Le()
-      case firrtl.PrimOps.Lt => digitaljs.Lt()
-      case Geq => Ge()
-      case firrtl.PrimOps.Gt => digitaljs.Gt()
-      case firrtl.PrimOps.Eq => digitaljs.Eq()
-      case Neq => Ne()
-    }
-
-  def shiftTypeOfPrimOp(op: PrimOp) : ShiftType =
-    op match {
-      case Shr | Dshr => ShiftRight()
-      case Shl | Dshl => ShiftLeft()
-    }
-
-  def maybeIsSigned(tpe: Type) : Option[Boolean] = tpe match {
-    case SIntType(width) => Some(true)
-    case UIntType(width) => Some(false)
-    case _ => None
-  }
-
-  def isSigned(tpe : Type) : Boolean = maybeIsSigned(tpe).get
 
   def convertPrimitive(
     op: PrimOp,
@@ -461,18 +405,6 @@ class Converter {
       }
       case _ => println("Not handled ", op.toString()); (ListMap(), Nil, new Plug("XD", "out")); // TODO Cleanup
     }
-  }
-
-  def makeConstantString(
-    value : BigInt,
-    width : BigInt
-  ) : String = {
-    val bits = width.toInt
-    var constant = value.toString(2);
-    while (constant.length < bits) {
-      constant = "0" + constant;
-    }
-    constant
   }
 
   def convertExpression(
