@@ -3,6 +3,7 @@ package firrtl2digitaljs
 import firrtl.ir._
 import firrtl.PrimOps._
 import digitaljs._
+import firrtl.Dshlw
 
 object Utils {}
 
@@ -18,14 +19,12 @@ object ConveterUtils {
   def getIntParam(params: Seq[Param], name: String): BigInt =
     maybeGetIntParam(params, name).get
 
-  def maybeGetCircuit(circuits: Map[String, digitaljs.Circuit], name: String) =
-    circuits find { case (circuit_name, _) => name == circuit_name }
-
   def isClockType(tpe: Type) =
     tpe match {
       case ClockType => true
       case _         => false
     }
+
   def reduceGateOfPrimOp(op: PrimOp): ReduceGateType =
     op match {
       case Andr => AndReduce
@@ -62,7 +61,7 @@ object ConveterUtils {
   def shiftTypeOfPrimOp(op: PrimOp): ShiftType =
     op match {
       case Shr | Dshr => ShiftRight()
-      case Shl | Dshl => ShiftLeft()
+      case Shl | Dshl | Dshlw => ShiftLeft()
     }
 
   def maybeIsSigned(tpe: Type): Option[Boolean] = tpe match {

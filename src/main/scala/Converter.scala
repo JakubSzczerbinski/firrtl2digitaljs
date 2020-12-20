@@ -22,6 +22,8 @@ import firrtl.SinkFlow
 import os.stat
 import firrtl.Emitter
 import os.write
+import firrtl.InstanceKind
+import firrtl.Dshlw
 
 class Converter {
   import ConveterUtils._
@@ -53,8 +55,8 @@ class Converter {
     }).toMap
 
   def digitalJsOfCircuits(circuits : Map[String, digitaljs.Circuit], main_circuit : String) =
-    maybeGetCircuit(circuits, main_circuit) match {
-      case Some((_, toplevel)) => 
+    circuits.get(main_circuit) match {
+      case Some(toplevel) => 
         new DigitalJs(
           toplevel.devices,
           toplevel.connectors, 
@@ -142,8 +144,9 @@ class Converter {
 
   def getPlug(expr: Expression): Plug =
     expr match {
-      case WRef(name, tpe, kind, flow) => new Plug(name, "in")
-      case WSubField(WRef(name, tp1, kind, f1), port, tp0, f0) =>
+      case ref : WRef if ref.flow == SinkFlow => new Plug(ref.name, "in")
+      case ref : WRef if ref.flow == SourceFlow => new Plug(ref.name, "out")
+      case WSubField(WRef(name, tp1, InstanceKind, f1), port, tp0, f0) =>
         new Plug(name, port)
       case _ => ???
     }
@@ -203,7 +206,7 @@ class Converter {
           lcs ++ rcs
         , new Plug(name, "out")
         )
-      case Dshl | Dshr =>
+      case Dshl | Dshr | Dshlw =>
         val name = generateIntermediateName(default_name);
         val lhs = args(0);
         val rhs = args(1);
@@ -303,8 +306,8 @@ class Converter {
         val name = generateIntermediateName(default_name);
         val lhs = args(0);
         val rhs = args(1);
-        val (lds, lcs, lhsPlug) = convertExpression(lhs, label, tpe);
-        val (rds, rcs, rhsPlug) = convertExpression(rhs, label, tpe);
+        val (lds, lcs, lhsPlug) = convertExpression(lhs, label, None, Some(tpe));
+        val (rds, rcs, rhsPlug) = convertExpression(rhs, label, None, Some(tpe));
         ( (lds ++ rds)
         + (name -> new BinaryGate(
             binGateTypeOfPrimOp(op),
@@ -409,52 +412,23 @@ class Converter {
 
   def convertExpression(
       expr: Expression,
-      label : String
-  ): (Map[String, Device], List[Connector], Plug) = {
-    val intermediateName = generateIntermediateName(None);
-    convertExpression(expr, intermediateName, label);
-  }
-
-  def convertExpression(
-    expr : Expression,
-    toplevel : String,
-    label : String,
-    tpe : Type,
-  ) : (Map[String, Device], List[Connector], Plug) = {
-    val (ds, cs, plug) = convertExpression(expr, toplevel, label);
-    val (eds, ecs, eplug) = maybeExtend(tpe, expr.tpe, plug);
-    (eds ++ ds, ecs ++ cs, eplug)
-  }
-
-  def convertExpression(
-    expr : Expression,
-    label : String,
-    tpe : Type,
-  ) : (Map[String, Device], List[Connector], Plug) = {
-    val (ds, cs, plug) = convertExpression(expr, label);
-    val (eds, ecs, eplug) = maybeExtend(tpe, expr.tpe, plug);
-    (eds ++ ds, ecs ++ cs, eplug)
-  }
-
-  def convertExpression(
-      expr: Expression,
-      toplevel: String,
       label: String,
+      maybeToplevel: Option[String] = None,
+      maybeTpe : Option[Type] = None,
   ): (Map[String, Device], List[Connector], Plug) = {
-    expr match {
+    val toplevel = generateIntermediateName(maybeToplevel);
+    val (ds, cs, plug) : (Map[String, Device], List[Connector], Plug) = expr match {
       case DoPrim(op, args, consts, tpe) => convertPrimitive(op, args, consts, tpe, Some(toplevel), label);
       case FixedLiteral(value, width, point) => {
         ( ListMap(toplevel -> new Constant(label, makeConstantString(value, bitWidth(expr.tpe))))
         , Nil
         , new Plug(toplevel, "out") )
       }
-      case WRef(name, tpe, kind, flow) =>
-        (ListMap(), Nil, new Plug(name, "out"))
-      case WSubField(_, name, tpe, flow) => (ListMap(), Nil, getPlug(expr))
+      case _ : WRef | _ : WSubField => (ListMap(), Nil, getPlug(expr))
       case firrtl.ir.Mux(cond, tval, fval, tpe) => {
-        val (cds, ccs, condPlug) = convertExpression(cond, label);
-        val (tds, tcs, tvalPlug) = convertExpression(tval, label, tpe);
-        val (fds, fcs, fvalPlug) = convertExpression(fval, label, tpe);
+        val (cds, ccs, condPlug) = convertExpression(cond, label, None);
+        val (tds, tcs, tvalPlug) = convertExpression(tval, label, None, Some(tpe));
+        val (fds, fcs, fvalPlug) = convertExpression(fval, label, None, Some(tpe));
         ( (cds ++ tds ++ fds) + (toplevel -> new digitaljs.Mux(label, bitWidth(tpe).toInt, 1))
         , new Connector(fvalPlug, new Plug(toplevel, "in0")) ::
           new Connector(tvalPlug, new Plug(toplevel, "in1")) ::
@@ -471,7 +445,14 @@ class Converter {
         ( ListMap(toplevel -> new Constant(label, makeConstantString(value, bitWidth(expr.tpe))))
         , Nil
         , new Plug(toplevel, "out") )
-      case ValidIf(cond, value, tpe) => convertExpression(value, label);
+    }
+    maybeTpe match {
+      case None => 
+        (ds, cs, plug)
+      case Some(tpe) => {
+        val (eds, ecs, eplug) = maybeExtend(tpe, expr.tpe, plug);
+        (eds ++ ds, ecs ++ cs, eplug)
+      }
     }
   }
 
@@ -516,7 +497,7 @@ class Converter {
           (ListMap(name -> new Subcircuit(name, module)), Nil)
       }
       case DefNode(info, name, value) => {
-        val (ds, cs, plug) = convertExpression(value, name, info.toString());
+        val (ds, cs, plug) = convertExpression(value, info.toString(), Some(name));
         if (plug.id == name)
           (ds, cs)
         else {
