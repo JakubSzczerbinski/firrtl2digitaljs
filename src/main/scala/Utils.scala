@@ -15,9 +15,15 @@ object ConveterUtils {
     } map { case IntParam(name, value) =>
       value
     }).headOption
-
+  
   def getIntParam(params: Seq[Param], name: String): BigInt =
     maybeGetIntParam(params, name).get
+
+  def getBoolParam(params : Seq[Param], name : String) : Boolean =
+    getIntParam(params, name).toInt match {
+      case 0 => false
+      case 1 => true
+    }
 
   def isClockType(tpe: Type) =
     tpe match {

@@ -24,22 +24,25 @@ import firrtl.Emitter
 import os.write
 import firrtl.InstanceKind
 import firrtl.Dshlw
+import firrtl.options.Dependency
 
 class Converter {
   import ConveterUtils._
-  var memory_modules : Map[String, Memory] = Map.empty;
-
-  def findMemoryModules (circuit : firrtl.ir.Circuit) : Map[String, Memory] =
+  def findMemoryModules(circuit: firrtl.ir.Circuit): Map[String, Memory] =
     (circuit.modules flatMap {
-      case ExtModule(info, name, ports, defname, params) if defname == "DIGITALJS_MEMORY" => {
+      case ExtModule(info, name, ports, defname, params)
+          if defname == "DIGITALJS_MEMORY" => {
         var addrWidth = getIntParam(params, "ADDR_WIDTH").toInt
         var size = getIntParam(params, "SIZE").toInt
         var readers = getIntParam(params, "READERS").toInt
         var writers = getIntParam(params, "WRITERS").toInt
-        val rdports : Seq[ReadPort] = 0 to readers map (i => new ReadPort(true, true, false))
-        val wrports : Seq[WritePort] = 0 to writers map (i => new WritePort(true, true))
+        var transparent_read = getBoolParam(params, "TRANSPARENT_READ")
+        val rdports: Seq[ReadPort] =
+          0 to (readers - 1) map (i => new ReadPort(true, if (transparent_read) None else Some(true), transparent_read))
+        val wrports: Seq[WritePort] =
+          0 to (writers - 1) map (i => new WritePort(true, true))
         val memory = new Memory(
-          info.toString, 
+          info.toString,
           size,
           addrWidth,
           Math.pow(2, size).toInt,
@@ -53,29 +56,55 @@ class Converter {
       case _ => Seq.empty
     }).toMap
 
-  def digitalJsOfCircuits(circuits : Map[String, digitaljs.Circuit], main_circuit : String) =
+  def digitalJsOfCircuits(
+      circuits: Map[String, digitaljs.Circuit],
+      main_circuit: String
+  ) =
     circuits.get(main_circuit) match {
-      case Some(toplevel) => 
+      case Some(toplevel) =>
         new DigitalJs(
           toplevel.devices,
-          toplevel.connectors, 
-          circuits filter { case (name, _) => name != main_circuit })
+          toplevel.connectors,
+          circuits filter { case (name, _) => name != main_circuit }
+        )
       case None => {
         println("No toplevel module")
         new DigitalJs(Map.empty, Nil, circuits)
       }
     }
   
-  def convert(circuit : firrtl.ir.Circuit) : DigitalJs = {
-    memory_modules = findMemoryModules(circuit)
+  def lowerFirrtl(circuit : firrtl.ir.Circuit) : firrtl.ir.Circuit = {
+    val translation_transforms = Seq(
+      Dependency[DigitaljsMemoryAdapterInsertion], 
+      Dependency[RemoveSinksUsedAsSources]) 
+    val compiler = new firrtl.stage.transforms.Compiler(
+      targets = translation_transforms ++ firrtl.stage.Forms.LowFormOptimized
+    )
+    val lowered = compiler.execute(CircuitState(circuit, Seq.empty))
+    lowered.circuit
+  }
+
+  def convert(circuit : firrtl.ir.Circuit, transform_io: Boolean) : (DigitalJs, Seq[String]) = {
+    val low_firrtl = lowerFirrtl(circuit);
+    val (low_firrtl_without_debug, scripts) = (new GenerateLuaTestbenches).run(low_firrtl)
+    val digitaljs = run_conversion(low_firrtl_without_debug, transform_io);
+    (digitaljs, scripts map (_.contents()))
+  }
+
+  def run_conversion(circuit: firrtl.ir.Circuit, transform_io : Boolean): DigitalJs = {
+    val memory_modules = findMemoryModules(circuit)
     val circuits = (circuit.modules map (mod => {
       val modConv = new ModuleConverter(mod, memory_modules);
       modConv.convert()
     })).toMap;
-    digitalJsOfCircuits(circuits, circuit.main)
+    val djs = digitalJsOfCircuits(circuits, circuit.main)
+    if (transform_io)
+      transformToplevelIO(djs)
+    else
+      djs
   }
 
-  def transformToplevelIO(djs : DigitalJs) : DigitalJs = {
+  def transformToplevelIO(djs: DigitalJs): DigitalJs = {
     val devices = djs.devices mapValues {
       case digitaljs.Input(label, net, order, bits, is_clock, signed) =>
         if (is_clock)
@@ -92,13 +121,5 @@ class Converter {
       case device => device
     }
     new DigitalJs(devices, djs.connectors, djs.subcircuits);
-  }
-
-  def convertWithOpts(circuit : firrtl.ir.Circuit, transformIO : Boolean) : DigitalJs = {
-    val djs = convert(circuit);
-    if (transformIO)
-      transformToplevelIO(djs)
-    else
-      djs
   }
 }

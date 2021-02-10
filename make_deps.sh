@@ -28,3 +28,10 @@ cd firrtl-interpreter
 sbt compile
 sbt publishLocal
 cd ..
+
+# chisel-iotesters
+git clone https://github.com/freechipsproject/chisel-testers.git -b 1.4-release
+cd chisel-testers
+sbt compile
+sbt publishLocal
+cd ..

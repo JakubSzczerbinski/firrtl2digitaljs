@@ -14,42 +14,59 @@ import firrtl.options.Dependency
 
 object Main {
 
-  def main(args: Array[String]) : Unit = {
-    if (args.length < 1) {
-      println("No file passed");
-      return ()
+  val usage = """
+  Usage: ./firrtl2digitaljs [-o <output_filename>] [--log <log_filename>] input_filename
+
+  Options:
+    --log <log_filename>    -- set log filename (default: firrtl.log)
+    -o <output_filename>    -- set output filename (default: input_filename with .json extension)
+  """
+
+  type OptionMap = Map[Symbol, String]
+  def nextOption(map : OptionMap, list: List[String]) : OptionMap = {
+    list match {
+      case "--log" :: filename :: opts =>
+        nextOption(map ++ Map('log_filename -> filename), opts)
+      case "-o" :: filename :: opts =>
+        nextOption(map ++ Map('output_filename -> filename), opts)
+      case opt :: opts if opt(0) == '-' =>
+        throw new RuntimeException("Unkown option: " + opt);
+      case filename :: opts =>
+        nextOption(map ++ Map('input_filename -> filename), opts)
+      case Nil =>
+        map
     }
-
-    if (args.length >= 1)
-      try {
-        // Redirects firrtl compiler log to firrtl.log
-        setOutput("firrtl.log");
-        val firrtl = parseFile(args.head, UseInfo);
-        val djs = convert(firrtl, true);
-        println(djs)
-      }
-      catch {
-        case ex : java.nio.file.NoSuchFileException =>
-          println(s"File not found ${ex.getMessage()}");
-        case ex : Throwable =>
-          println(s"Failed to convert. Exception message ${ex}")
-      }
-
-    if (args.length > 1)
-      println(s"Ignoring files: ${args.tail mkString ", "}");
   }
 
-  def convert(circuit : firrtl.ir.Circuit, transform_io: Boolean) : String = {
-    val low_firrtl = lowerFirrtl(circuit);
-    val digitaljs = (new Converter).convertWithOpts(low_firrtl, transform_io);
-    digitaljs.toJson();
+  def changeExtension(str : String, ext : String) = {
+    def segments = str.split('.')
+    if (segments.length == 1)
+      segments(0) + "." + ext
+    else 
+      segments.dropRight(1).mkString + "." + ext
   }
 
-  def lowerFirrtl(circuit : firrtl.ir.Circuit) : firrtl.ir.Circuit = {
-    val compiler = new firrtl.stage.transforms.Compiler(
-        targets = Seq(Dependency[RemoveSinksUsedAsSources], Dependency[DigitaljsMemoryAdapterInsertion]) ++ firrtl.stage.Forms.LowFormMinimumOptimized
-      )
-    val lowered = compiler.execute(CircuitState(circuit, Seq.empty))
-    lowered.circuit
+  def writeToFile(content: String, filename : String) : Unit = {
+    new java.io.PrintWriter(filename) { write(content); close }
+  }
+
+  def main(args: Array[String]) : Unit = {
+    val arglist = args.toList
+    val options = nextOption(Map(), arglist)
+
+    val input_filename = options.get('input_filename) match {
+      case Some(value) => value
+      case None => {
+        println(usage)
+        throw new RuntimeException("Missing input filename")
+      }
+    }
+    val log_filename = options.getOrElse('log_filename, "firrtl.log")
+    val output_filename = options.getOrElse('output_filename, changeExtension(input_filename, "json"))
+
+    setOutput(log_filename);
+    val firrtl = parseFile(input_filename, UseInfo);
+    val (djs, scripts) = (new Converter).convert(firrtl, true);
+    writeToFile(djs.toJson, output_filename);
   }
 }

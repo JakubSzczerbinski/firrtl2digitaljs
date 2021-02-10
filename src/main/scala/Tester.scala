@@ -16,7 +16,7 @@ import firrtl.CircuitForm
 import firrtl.ChirrtlForm
 import firrtl.CircuitState
 import firrtl_interpreter.InterpreterException
-import javax.naming.CommunicationException
+import logger.Logger.setOutput
 
 trait Tester {
   def peek(output : String) : BigInt
@@ -33,12 +33,13 @@ class FirrtlTester(dut: String) extends Tester {
 
 class DigitalJsTester(dut: String) extends Tester {
   val testerController = new SubprocessController(Seq("node", "external/digitaljs_peek_poke_tester/index.js"));
+  setOutput("test.log");
   val djs = convertCircuit(dut);
   init();
 
   def convertCircuit(dut : String) : String = {
     val circuit = firrtl.Parser.parse(dut);
-    Main.convert(circuit, false)
+    (new Converter).convert(circuit, false)._1.toJson
   }
 
   def init() = {

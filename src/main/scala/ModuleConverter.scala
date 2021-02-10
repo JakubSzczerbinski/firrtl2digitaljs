@@ -4,11 +4,6 @@ import firrtl2digitaljs.digitaljs._
 import firrtl.ir.DefModule
 import firrtl.Mappers._
 import firrtl.ir._
-import firrtl.LowFirrtlCompiler
-import firrtl.CircuitState
-import firrtl.ChirrtlForm
-import firrtl.FirrtlEmitter
-import firrtl.LowFirrtlEmitter
 import firrtl.bitWidth
 import firrtl.PrimOps._
 import firrtl.WRef
@@ -16,12 +11,9 @@ import firrtl.WSubField
 import firrtl.WDefInstance
 import firrtl.getWidth
 import scala.collection.immutable.ListMap
-import scala.collection.immutable.Stream.cons
 import firrtl.SourceFlow
 import firrtl.SinkFlow
-import os.stat
 import firrtl.Emitter
-import os.write
 import firrtl.InstanceKind
 import firrtl.Dshlw
 import firrtl.Namespace
@@ -402,9 +394,9 @@ class ModuleConverter (module : firrtl.ir.DefModule, memory_modules : Map[String
     }
   }
   def convertStatement(
-      statetment: Statement
+      statement: Statement
   ): (Map[String, Device], List[Connector]) = {
-    statetment match {
+    statement match {
       case Block(stmts) =>
         stmts
           .map(convertStatement)
@@ -447,7 +439,7 @@ class ModuleConverter (module : firrtl.ir.DefModule, memory_modules : Map[String
       case IsInvalid(info, expr) => {
         (Map.empty, List.empty)
       }
-      case _ => println("Illegal statement: " + statetment.serialize); (ListMap(), Nil)
+      case EmptyStmt => (Map.empty, List.empty)
     }
   }
 }

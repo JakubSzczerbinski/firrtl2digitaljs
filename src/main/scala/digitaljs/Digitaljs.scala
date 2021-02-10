@@ -434,13 +434,13 @@ case class BusSlice(label: String, first: Int, count : Int, total: Int) extends 
 
 class ReadPort(
   enable_polarity: Boolean,
-  clock_polarity: Boolean,
+  clock_polarity: Option[Boolean],
   transparent: Boolean
 ) extends JsonSerializable {
   override def toJson(): String = s"""
 {
   "enable_polarity": $enable_polarity,
-  "clock_polarity": $clock_polarity,
+  ${if (clock_polarity.isDefined) s""""clock_polarity": ${clock_polarity.get.toString},""" else ""}
   "transparent": $transparent
 }"""
 }
@@ -498,7 +498,8 @@ class Connector(val from: Plug, val to: Plug) extends JsonSerializable {
   def toJson(): String = s"""
 {
   "to": ${JsonHelpers.indent(to.toJson())},
-  "from": ${JsonHelpers.indent(from.toJson())}
+  "from": ${JsonHelpers.indent(from.toJson())},
+  "name": "${from.id}__${from.port}"
 }"""
 }
 

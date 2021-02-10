@@ -19,6 +19,7 @@ libraryDependencies ++= Seq(
   "edu.berkeley.cs" % "firrtl_2.12" % "1.3.2",
   "edu.berkeley.cs" %% "chisel3" % "3.3.2",
   "edu.berkeley.cs" %% "firrtl-interpreter" % "1.3.2",
+  "edu.berkeley.cs" %% "chisel-iotesters" % "1.4.2",
   "org.scalatest" % "scalatest_2.12" % "3.2.0",
   "org.scalacheck" %% "scalacheck" % "1.14.1",
   "com.github.pathikrit" %% "dijon" % "0.3.0",

@@ -67,7 +67,8 @@ class DigitalJsMemoryAdapterInsertionSpec extends AnyFlatSpec with Matchers {
       IntParam("ADDR_WIDTH", 8),
       IntParam("SIZE", 8),
       IntParam("READERS", 1),
-      IntParam("WRITERS", 1)
+      IntParam("WRITERS", 1),
+      IntParam("TRANSPARENT_READ", 1),
     )
     memModule.defname should equal("DIGITALJS_MEMORY")
   }
