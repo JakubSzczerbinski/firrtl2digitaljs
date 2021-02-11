@@ -1,0 +1,294 @@
+
+{
+  "devices": {
+    "_T": 
+    {
+      "type": "Xor",
+      "label": " @[GenerateExamples.scala 17:16]",
+      "bits": 1
+    },
+    "_T_3": 
+    {
+      "type": "And",
+      "label": " @[GenerateExamples.scala 18:36]",
+      "bits": 1
+    },
+    "io_s": 
+    {
+      "type": "Lamp",
+      "label": ""
+    },
+    "_T_4": 
+    {
+      "type": "Or",
+      "label": " @[GenerateExamples.scala 18:28]",
+      "bits": 1
+    },
+    "_GEN_10": 
+    {
+      "type": "Xor",
+      "label": " @[GenerateExamples.scala 17:8]",
+      "bits": 1
+    },
+    "io_cout": 
+    {
+      "type": "Lamp",
+      "label": ""
+    },
+    "_T_2": 
+    {
+      "type": "And",
+      "label": " @[GenerateExamples.scala 18:20]",
+      "bits": 1
+    },
+    "io_cin": 
+    {
+      "type": "Button",
+      "label": ""
+    },
+    "clock": 
+    {
+      "type": "Clock",
+      "label": ""
+    },
+    "_T_5": 
+    {
+      "type": "And",
+      "label": " @[GenerateExamples.scala 18:54]",
+      "bits": 1
+    },
+    "reset": 
+    {
+      "type": "Button",
+      "label": ""
+    },
+    "_GEN_13": 
+    {
+      "type": "Or",
+      "label": " @[GenerateExamples.scala 18:11]",
+      "bits": 1
+    },
+    "io_b": 
+    {
+      "type": "Button",
+      "label": ""
+    },
+    "io_a": 
+    {
+      "type": "Button",
+      "label": ""
+    }
+  },
+  "connectors": [
+    {
+      "to": 
+      {
+        "id": "_T",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "io_a",
+        "port": "out"
+      },
+      "name": "io_a__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_T",
+        "port": "in2"
+      },
+      "from": 
+      {
+        "id": "io_b",
+        "port": "out"
+      },
+      "name": "io_b__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_T_2",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "io_a",
+        "port": "out"
+      },
+      "name": "io_a__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_T_2",
+        "port": "in2"
+      },
+      "from": 
+      {
+        "id": "io_b",
+        "port": "out"
+      },
+      "name": "io_b__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_T_3",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "io_b",
+        "port": "out"
+      },
+      "name": "io_b__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_T_3",
+        "port": "in2"
+      },
+      "from": 
+      {
+        "id": "io_cin",
+        "port": "out"
+      },
+      "name": "io_cin__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_T_4",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "_T_2",
+        "port": "out"
+      },
+      "name": "_T_2__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_T_4",
+        "port": "in2"
+      },
+      "from": 
+      {
+        "id": "_T_3",
+        "port": "out"
+      },
+      "name": "_T_3__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_T_5",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "io_a",
+        "port": "out"
+      },
+      "name": "io_a__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_T_5",
+        "port": "in2"
+      },
+      "from": 
+      {
+        "id": "io_cin",
+        "port": "out"
+      },
+      "name": "io_cin__out"
+    },
+    {
+      "to": 
+      {
+        "id": "io_s",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "_GEN_10",
+        "port": "out"
+      },
+      "name": "_GEN_10__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_10",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "_T",
+        "port": "out"
+      },
+      "name": "_T__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_10",
+        "port": "in2"
+      },
+      "from": 
+      {
+        "id": "io_cin",
+        "port": "out"
+      },
+      "name": "io_cin__out"
+    },
+    {
+      "to": 
+      {
+        "id": "io_cout",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "_GEN_13",
+        "port": "out"
+      },
+      "name": "_GEN_13__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_13",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "_T_4",
+        "port": "out"
+      },
+      "name": "_T_4__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_13",
+        "port": "in2"
+      },
+      "from": 
+      {
+        "id": "_T_5",
+        "port": "out"
+      },
+      "name": "_T_5__out"
+    }
+  ],
+  "subcircuits": {
+  }
+}

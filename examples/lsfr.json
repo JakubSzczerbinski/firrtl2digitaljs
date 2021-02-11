@@ -1,0 +1,912 @@
+
+{
+  "devices": {
+    "io_out_1": 
+    {
+      "type": "Lamp",
+      "label": ""
+    },
+    "io_out_5": 
+    {
+      "type": "Lamp",
+      "label": ""
+    },
+    "reg_5": 
+    {
+      "type": "Dff",
+      "label": " @[GenerateExamples.scala 26:20]",
+      "bits": 1,
+      "polarity": {
+          "clock": true
+      },
+      "initial": ""
+    },
+    "reg_2": 
+    {
+      "type": "Dff",
+      "label": " @[GenerateExamples.scala 26:20]",
+      "bits": 1,
+      "polarity": {
+          "clock": true
+      },
+      "initial": ""
+    },
+    "_GEN_30": 
+    {
+      "type": "Mux",
+      "label": " @[GenerateExamples.scala 29:12]",
+      "bits": {
+        "in": 1,
+        "sel": 1
+      }
+    },
+    "_GEN_44": 
+    {
+      "type": "Constant",
+      "label": " @[GenerateExamples.scala 29:12]",
+      "constant": "0"
+    },
+    "_GEN_22": 
+    {
+      "type": "Mux",
+      "label": " @[GenerateExamples.scala 29:12]",
+      "bits": {
+        "in": 1,
+        "sel": 1
+      }
+    },
+    "_GEN_19": 
+    {
+      "type": "Or",
+      "label": " @[GenerateExamples.scala 27:10]",
+      "bits": 1
+    },
+    "io_out_2": 
+    {
+      "type": "Lamp",
+      "label": ""
+    },
+    "io_out_4": 
+    {
+      "type": "Lamp",
+      "label": ""
+    },
+    "reg_0": 
+    {
+      "type": "Dff",
+      "label": " @[GenerateExamples.scala 26:20]",
+      "bits": 1,
+      "polarity": {
+          "clock": true
+      },
+      "initial": ""
+    },
+    "_GEN_32": 
+    {
+      "type": "Constant",
+      "label": " @[GenerateExamples.scala 29:12]",
+      "constant": "0"
+    },
+    "_GEN_40": 
+    {
+      "type": "Constant",
+      "label": " @[GenerateExamples.scala 29:12]",
+      "constant": "0"
+    },
+    "reg_4": 
+    {
+      "type": "Dff",
+      "label": " @[GenerateExamples.scala 26:20]",
+      "bits": 1,
+      "polarity": {
+          "clock": true
+      },
+      "initial": ""
+    },
+    "_T_2": 
+    {
+      "type": "Not",
+      "label": " @[GenerateExamples.scala 27:13]",
+      "bits": 1
+    },
+    "_GEN_36": 
+    {
+      "type": "Constant",
+      "label": " @[GenerateExamples.scala 29:12]",
+      "constant": "0"
+    },
+    "clock": 
+    {
+      "type": "Clock",
+      "label": ""
+    },
+    "_GEN_42": 
+    {
+      "type": "Mux",
+      "label": " @[GenerateExamples.scala 29:12]",
+      "bits": {
+        "in": 1,
+        "sel": 1
+      }
+    },
+    "io_out_7": 
+    {
+      "type": "Lamp",
+      "label": ""
+    },
+    "reg_7": 
+    {
+      "type": "Dff",
+      "label": " @[GenerateExamples.scala 26:20]",
+      "bits": 1,
+      "polarity": {
+          "clock": true
+      },
+      "initial": ""
+    },
+    "_GEN_46": 
+    {
+      "type": "Mux",
+      "label": " @[GenerateExamples.scala 29:12]",
+      "bits": {
+        "in": 1,
+        "sel": 1
+      }
+    },
+    "_GEN_26": 
+    {
+      "type": "Mux",
+      "label": " @[GenerateExamples.scala 29:12]",
+      "bits": {
+        "in": 1,
+        "sel": 1
+      }
+    },
+    "_GEN_24": 
+    {
+      "type": "Constant",
+      "label": " @[GenerateExamples.scala 29:12]",
+      "constant": "0"
+    },
+    "reset": 
+    {
+      "type": "Button",
+      "label": ""
+    },
+    "_T_1": 
+    {
+      "type": "Xor",
+      "label": " @[GenerateExamples.scala 27:22]",
+      "bits": 1
+    },
+    "_GEN_48": 
+    {
+      "type": "Constant",
+      "label": " @[GenerateExamples.scala 29:12]",
+      "constant": "0"
+    },
+    "io_out_6": 
+    {
+      "type": "Lamp",
+      "label": ""
+    },
+    "reg_3": 
+    {
+      "type": "Dff",
+      "label": " @[GenerateExamples.scala 26:20]",
+      "bits": 1,
+      "polarity": {
+          "clock": true
+      },
+      "initial": ""
+    },
+    "io_out_0": 
+    {
+      "type": "Lamp",
+      "label": ""
+    },
+    "_GEN_28": 
+    {
+      "type": "Constant",
+      "label": " @[GenerateExamples.scala 29:12]",
+      "constant": "0"
+    },
+    "_GEN_34": 
+    {
+      "type": "Mux",
+      "label": " @[GenerateExamples.scala 29:12]",
+      "bits": {
+        "in": 1,
+        "sel": 1
+      }
+    },
+    "reg_6": 
+    {
+      "type": "Dff",
+      "label": " @[GenerateExamples.scala 26:20]",
+      "bits": 1,
+      "polarity": {
+          "clock": true
+      },
+      "initial": ""
+    },
+    "reg_1": 
+    {
+      "type": "Dff",
+      "label": " @[GenerateExamples.scala 26:20]",
+      "bits": 1,
+      "polarity": {
+          "clock": true
+      },
+      "initial": ""
+    },
+    "io_out_3": 
+    {
+      "type": "Lamp",
+      "label": ""
+    },
+    "_GEN_38": 
+    {
+      "type": "Mux",
+      "label": " @[GenerateExamples.scala 29:12]",
+      "bits": {
+        "in": 1,
+        "sel": 1
+      }
+    }
+  },
+  "connectors": [
+    {
+      "to": 
+      {
+        "id": "reg_0",
+        "port": "clk"
+      },
+      "from": 
+      {
+        "id": "clock",
+        "port": "out"
+      },
+      "name": "clock__out"
+    },
+    {
+      "to": 
+      {
+        "id": "reg_1",
+        "port": "clk"
+      },
+      "from": 
+      {
+        "id": "clock",
+        "port": "out"
+      },
+      "name": "clock__out"
+    },
+    {
+      "to": 
+      {
+        "id": "reg_2",
+        "port": "clk"
+      },
+      "from": 
+      {
+        "id": "clock",
+        "port": "out"
+      },
+      "name": "clock__out"
+    },
+    {
+      "to": 
+      {
+        "id": "reg_3",
+        "port": "clk"
+      },
+      "from": 
+      {
+        "id": "clock",
+        "port": "out"
+      },
+      "name": "clock__out"
+    },
+    {
+      "to": 
+      {
+        "id": "reg_4",
+        "port": "clk"
+      },
+      "from": 
+      {
+        "id": "clock",
+        "port": "out"
+      },
+      "name": "clock__out"
+    },
+    {
+      "to": 
+      {
+        "id": "reg_5",
+        "port": "clk"
+      },
+      "from": 
+      {
+        "id": "clock",
+        "port": "out"
+      },
+      "name": "clock__out"
+    },
+    {
+      "to": 
+      {
+        "id": "reg_6",
+        "port": "clk"
+      },
+      "from": 
+      {
+        "id": "clock",
+        "port": "out"
+      },
+      "name": "clock__out"
+    },
+    {
+      "to": 
+      {
+        "id": "reg_7",
+        "port": "clk"
+      },
+      "from": 
+      {
+        "id": "clock",
+        "port": "out"
+      },
+      "name": "clock__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_T_1",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "reg_3",
+        "port": "out"
+      },
+      "name": "reg_3__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_T_1",
+        "port": "in2"
+      },
+      "from": 
+      {
+        "id": "reg_7",
+        "port": "out"
+      },
+      "name": "reg_7__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_T_2",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "_T_1",
+        "port": "out"
+      },
+      "name": "_T_1__out"
+    },
+    {
+      "to": 
+      {
+        "id": "io_out_0",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "reg_0",
+        "port": "out"
+      },
+      "name": "reg_0__out"
+    },
+    {
+      "to": 
+      {
+        "id": "io_out_1",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "reg_1",
+        "port": "out"
+      },
+      "name": "reg_1__out"
+    },
+    {
+      "to": 
+      {
+        "id": "io_out_2",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "reg_2",
+        "port": "out"
+      },
+      "name": "reg_2__out"
+    },
+    {
+      "to": 
+      {
+        "id": "io_out_3",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "reg_3",
+        "port": "out"
+      },
+      "name": "reg_3__out"
+    },
+    {
+      "to": 
+      {
+        "id": "io_out_4",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "reg_4",
+        "port": "out"
+      },
+      "name": "reg_4__out"
+    },
+    {
+      "to": 
+      {
+        "id": "io_out_5",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "reg_5",
+        "port": "out"
+      },
+      "name": "reg_5__out"
+    },
+    {
+      "to": 
+      {
+        "id": "io_out_6",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "reg_6",
+        "port": "out"
+      },
+      "name": "reg_6__out"
+    },
+    {
+      "to": 
+      {
+        "id": "io_out_7",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "reg_7",
+        "port": "out"
+      },
+      "name": "reg_7__out"
+    },
+    {
+      "to": 
+      {
+        "id": "reg_0",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "_GEN_19",
+        "port": "out"
+      },
+      "name": "_GEN_19__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_19",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "reset",
+        "port": "out"
+      },
+      "name": "reset__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_19",
+        "port": "in2"
+      },
+      "from": 
+      {
+        "id": "_T_2",
+        "port": "out"
+      },
+      "name": "_T_2__out"
+    },
+    {
+      "to": 
+      {
+        "id": "reg_1",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "_GEN_22",
+        "port": "out"
+      },
+      "name": "_GEN_22__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_22",
+        "port": "in0"
+      },
+      "from": 
+      {
+        "id": "reg_0",
+        "port": "out"
+      },
+      "name": "reg_0__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_22",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "_GEN_24",
+        "port": "out"
+      },
+      "name": "_GEN_24__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_22",
+        "port": "sel"
+      },
+      "from": 
+      {
+        "id": "reset",
+        "port": "out"
+      },
+      "name": "reset__out"
+    },
+    {
+      "to": 
+      {
+        "id": "reg_2",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "_GEN_26",
+        "port": "out"
+      },
+      "name": "_GEN_26__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_26",
+        "port": "in0"
+      },
+      "from": 
+      {
+        "id": "reg_1",
+        "port": "out"
+      },
+      "name": "reg_1__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_26",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "_GEN_28",
+        "port": "out"
+      },
+      "name": "_GEN_28__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_26",
+        "port": "sel"
+      },
+      "from": 
+      {
+        "id": "reset",
+        "port": "out"
+      },
+      "name": "reset__out"
+    },
+    {
+      "to": 
+      {
+        "id": "reg_3",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "_GEN_30",
+        "port": "out"
+      },
+      "name": "_GEN_30__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_30",
+        "port": "in0"
+      },
+      "from": 
+      {
+        "id": "reg_2",
+        "port": "out"
+      },
+      "name": "reg_2__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_30",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "_GEN_32",
+        "port": "out"
+      },
+      "name": "_GEN_32__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_30",
+        "port": "sel"
+      },
+      "from": 
+      {
+        "id": "reset",
+        "port": "out"
+      },
+      "name": "reset__out"
+    },
+    {
+      "to": 
+      {
+        "id": "reg_4",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "_GEN_34",
+        "port": "out"
+      },
+      "name": "_GEN_34__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_34",
+        "port": "in0"
+      },
+      "from": 
+      {
+        "id": "reg_3",
+        "port": "out"
+      },
+      "name": "reg_3__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_34",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "_GEN_36",
+        "port": "out"
+      },
+      "name": "_GEN_36__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_34",
+        "port": "sel"
+      },
+      "from": 
+      {
+        "id": "reset",
+        "port": "out"
+      },
+      "name": "reset__out"
+    },
+    {
+      "to": 
+      {
+        "id": "reg_5",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "_GEN_38",
+        "port": "out"
+      },
+      "name": "_GEN_38__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_38",
+        "port": "in0"
+      },
+      "from": 
+      {
+        "id": "reg_4",
+        "port": "out"
+      },
+      "name": "reg_4__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_38",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "_GEN_40",
+        "port": "out"
+      },
+      "name": "_GEN_40__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_38",
+        "port": "sel"
+      },
+      "from": 
+      {
+        "id": "reset",
+        "port": "out"
+      },
+      "name": "reset__out"
+    },
+    {
+      "to": 
+      {
+        "id": "reg_6",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "_GEN_42",
+        "port": "out"
+      },
+      "name": "_GEN_42__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_42",
+        "port": "in0"
+      },
+      "from": 
+      {
+        "id": "reg_5",
+        "port": "out"
+      },
+      "name": "reg_5__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_42",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "_GEN_44",
+        "port": "out"
+      },
+      "name": "_GEN_44__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_42",
+        "port": "sel"
+      },
+      "from": 
+      {
+        "id": "reset",
+        "port": "out"
+      },
+      "name": "reset__out"
+    },
+    {
+      "to": 
+      {
+        "id": "reg_7",
+        "port": "in"
+      },
+      "from": 
+      {
+        "id": "_GEN_46",
+        "port": "out"
+      },
+      "name": "_GEN_46__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_46",
+        "port": "in0"
+      },
+      "from": 
+      {
+        "id": "reg_6",
+        "port": "out"
+      },
+      "name": "reg_6__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_46",
+        "port": "in1"
+      },
+      "from": 
+      {
+        "id": "_GEN_48",
+        "port": "out"
+      },
+      "name": "_GEN_48__out"
+    },
+    {
+      "to": 
+      {
+        "id": "_GEN_46",
+        "port": "sel"
+      },
+      "from": 
+      {
+        "id": "reset",
+        "port": "out"
+      },
+      "name": "reset__out"
+    }
+  ],
+  "subcircuits": {
+  }
+}
