@@ -45,7 +45,7 @@ class Converter {
           info.toString,
           size,
           addrWidth,
-          Math.pow(2, size).toInt,
+          size,
           0,
           rdports,
           wrports,
@@ -76,7 +76,9 @@ class Converter {
   def lowerFirrtl(circuit : firrtl.ir.Circuit) : firrtl.ir.Circuit = {
     val translation_transforms = Seq(
       Dependency[DigitaljsMemoryAdapterInsertion], 
-      Dependency[RemoveSinksUsedAsSources]) 
+      Dependency[RemoveSinksUsedAsSources],
+      // Dependency[RemoveUnnecessaryIO]
+    ) 
     val compiler = new firrtl.stage.transforms.Compiler(
       targets = translation_transforms ++ firrtl.stage.Forms.LowFormOptimized
     )
